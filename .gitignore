@@ -1,0 +1,29 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+dist/
+build/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Data and artifacts belong in the sibling root/ folders (datasets/, models/,
+# inferences/, analyses/), not in this repo. These entries only guard against
+# a script writing here by mistake.
+*.pt
+*.pth
+*.ckpt
+*.npy
+*.npz
+*.mp4
+*.wav
+logs/
+checkpoints/
+outputs/

@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deepfake_detection"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.2",
+    "torchvision>=0.17",
+    "torchaudio>=2.2",
+    "transformers>=4.40",
+    "openai-whisper",
+    "numpy",
+    "opencv-python",
+    "scikit-learn",
+    "matplotlib",
+    "mediapipe",
+    "tqdm",
+    "pyyaml",
+    "av",
+    "pandas",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

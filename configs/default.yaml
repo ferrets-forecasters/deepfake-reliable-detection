@@ -1,0 +1,102 @@
+seed: 42
+
+paths:
+  # Resolved relative to the project root (two levels above this repo: repo/deepfake_detection/../..).
+  # Override with the DEEPFAKE_PROJECT_ROOT environment variable if the repo is used standalone.
+  datasets_root: datasets
+  models_root: models
+  inferences_root: inferences
+  analyses_root: analyses
+
+datasets:
+  - name: polyglotfake
+    modality: audio_video
+    real: 3944
+    fake: 67531
+    segments: 71475
+    source_url: https://github.com/tobuta/PolyGlotFake
+    download_url: https://drive.google.com/file/d/1aBWLii-TbrpKNLSTwpmjqu98eKovWLxF/view
+    access: direct_link
+  - name: hidf
+    modality: video
+    real: 5046
+    fake: 5045
+    segments: 10091
+    source_url: https://github.com/DSAIL-SKKU/HiDF
+    download_url: https://zenodo.org/records/16140829
+    access: public_clone
+  - name: fakeavceleb
+    modality: audio_video
+    real: 599
+    fake: 40235
+    segments: 40834
+    source_url: https://github.com/DASH-Lab/FakeAVCeleb
+    download_url: https://docs.google.com/forms/u/1/d/e/1FAIpQLSfPDd3oV0auqmmWEgCSaTEQ6CGpFeB-ozQJ35x-B_0Xjd93bw/viewform
+    access: request_form
+  - name: celebdfv2
+    modality: video
+    real: 5529
+    fake: 32689
+    segments: 38218
+    source_url: https://github.com/yuezunli/celeb-deepfakeforensics
+    download_url: https://forms.gle/2jYBby6y1FBU3u6q9
+    access: request_form
+  - name: ffpp
+    modality: video
+    real: 7369
+    fake: 55458
+    segments: 62827
+    source_url: https://github.com/ondyari/FaceForensics
+    download_url: https://docs.google.com/forms/d/e/1FAIpQLSdRRR3L5zAv6tQ_CKxmK4W96tAab_pfBu2EKAgQbeDVhmXagg/viewform
+    access: request_form
+
+split:
+  train: 0.6
+  val: 0.2
+  test: 0.2
+  level: subject
+
+preprocessing:
+  segment_seconds: 2
+  video:
+    num_frames: 16
+    image_size: 224
+    face_detector_fps: 2
+  audio:
+    sample_rate: 16000
+    mel_frames: 3000
+
+encoders:
+  visual:
+    model_id: MCG-NJU/videomae-base
+    hidden_size: 768
+    frozen: true
+  audio:
+    model_id: openai/whisper-medium
+    hidden_size: 1024
+    frozen: true
+
+model:
+  concat_dim: 1792
+  gru_hidden: 256
+  gru_layers: 2
+  gru_dropout: 0.3
+  visual_expert_hidden: 256
+  gate_hidden: 64
+  cross_attn_heads: 8
+  num_classes: 2
+
+train:
+  optimizer: adamw
+  learning_rate: 1.0e-4
+  scheduler: cosine_annealing
+  batch_size: 16
+  max_epochs: 60
+  early_stopping_patience: 12
+  early_stopping_metric: val_f1
+  swa_start_epoch: 45
+  focal_gamma: 1.0
+  focal_alpha: 0.75
+  label_smoothing: 0.05
+  domain_adversarial_weight: 0.10
+  gate_routing_aux_weight: 0.10
