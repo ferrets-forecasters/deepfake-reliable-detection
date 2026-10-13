@@ -18,6 +18,7 @@ from deepfake_detection.inference import MultiSubjectInference, SingleSpeaker
 from deepfake_detection.inference.camera import FFMPEG, list_devices, record_chunk
 from deepfake_detection.inference.summary import RollingVerdict, format_result
 from deepfake_detection.reference import load_reference_repo
+from deepfake_detection.utils.gpu import cap_gpu_memory
 
 
 def build_pipeline(args) -> MultiSubjectInference:
@@ -41,7 +42,10 @@ def build_pipeline(args) -> MultiSubjectInference:
 
 def save_result(result, source: str, out_dir: Path, stem: str) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
-    payload = {"source": source, "video_p_fake": result.video_p_fake, "flagged": result.flagged_tracks, "subjects": [asdict(s) for s in result.subjects]}
+    payload = {
+        "source": source, "video_p_fake": result.video_p_fake, "flagged": result.flagged_tracks, "duration": result.duration,
+        "turns": [asdict(t) for t in result.turns], "subjects": [asdict(s) for s in result.subjects],
+    }
     (out_dir / f"{stem}.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
@@ -95,6 +99,8 @@ def main() -> None:
     parser.add_argument("--detector-fps", type=float, default=8.0, help="face detections per second, lip-motion linking needs more than 2")
     parser.add_argument("--no-diarization", action="store_true", help="give every face the full audio")
     parser.add_argument("--name", default="demo", help="dataset name used in the output folder")
+    parser.add_argument("--skip-done", action="store_true", help="skip a video whose result file already exists, to resume a long list")
+    parser.add_argument("--gpu-memory-fraction", type=float, default=None, help="cap this process's CUDA memory, for running beside trainings")
     parser.add_argument("--config", default=None)
     parser.add_argument("--reproduction", default=str(REPO_ROOT / "configs" / "reproduction.yaml"))
     args = parser.parse_args()
@@ -104,6 +110,7 @@ def main() -> None:
             print(kind + ":", *names, sep="\n  ")
         return
 
+    cap_gpu_memory(args.gpu_memory_fraction)
     pipeline = build_pipeline(args)
     config = load_config(args.config)
     out_dir = config.paths.predictions_dir(f"{args.model}_on_{args.name}")
@@ -111,6 +118,8 @@ def main() -> None:
         run_camera(pipeline, args, out_dir)
         return
     for path in map(Path, args.video):
+        if args.skip_done and (out_dir / f"{path.stem}.json").exists():
+            continue
         run_video(pipeline, path, out_dir)
 
 

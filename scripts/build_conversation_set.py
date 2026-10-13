@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from build_tiled_set import fake_side
 from deepfake_detection.config import load_config
-from deepfake_detection.data.tiling import conversation_pair, index_clips, pick_pairs
+from deepfake_detection.data.tiling import conversation_pair, index_clips, own_test_clips, pick_pairs
 
 # left kind, right kind. The left person talks first, then the right person.
 PLANS = [("real", "real"), ("fake_av", "real"), ("real", "fake_av"), ("fake_v", "real"), ("real", "fake_v")]
@@ -32,16 +32,19 @@ def main() -> None:
     parser.add_argument("--height", type=int, default=224, help="frame height; the FakeAVCeleb clips are 224x224, so the default keeps the original pixels")
     parser.add_argument("--lossless", action="store_true", help="write FFV1 and PCM in .mkv, no lossy re-encoding")
     parser.add_argument("--ffmpeg", default=r"C:\tools\ffmpeg\bin\ffmpeg.exe")
+    parser.add_argument("--own-test-only", action="store_true", help="use only clips of the own seed-42 test split (labels/test_split.csv), so no clip comes from a subject a model trained on")
     parser.add_argument("--name", default=None)
     args = parser.parse_args()
 
     config = load_config(args.config)
     source_root = config.raw_dir("fakeavceleb") / "FakeAVCeleb_v1.2"
-    out_root = config.paths.datasets_root / (args.name or ("fakeavceleb_conversation_lossless" if args.lossless else "fakeavceleb_conversation"))
+    default_name = f"fakeavceleb_conversation{'_own_test' if args.own_test_only else ''}{'_lossless' if args.lossless else ''}"
+    out_root = config.paths.datasets_root / (args.name or default_name)
     raw_out, labels_out = out_root / "raw", out_root / "labels"
     labels_out.mkdir(parents=True, exist_ok=True)
 
-    index = index_clips(source_root)
+    allowed = own_test_clips(source_root, config.paths.datasets_root / "fakeavceleb" / "labels" / "test_split.csv") if args.own_test_only else None
+    index = index_clips(source_root, allowed)
     rows = []
     for plan_number, (left_kind, right_kind) in enumerate(PLANS):
         candidates = pick_pairs(index, left_kind, right_kind, args.per_plan * 6, args.seed + plan_number)

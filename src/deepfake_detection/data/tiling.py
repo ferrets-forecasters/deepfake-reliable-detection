@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import random
 import subprocess
 from collections import defaultdict
@@ -14,11 +15,21 @@ CATEGORY_DIRS = {
 }
 
 
-def index_clips(raw_root: Path) -> dict[tuple[str, str, str], list[Path]]:
-    """Clips grouped by (kind, race, gender). Layout: <raw_root>/<category>/<race>/<gender>/<id>/<clip>.mp4"""
+def own_test_clips(raw_root: Path, test_split_csv: Path) -> set[Path]:
+    """Clips of the own test split. A member path ends in <category>/<race>/<gender>/<id>/<clip>.mp4
+    whatever folders sit above it, so the clip is looked up under raw_root by those last five parts."""
+    with open(test_split_csv, encoding="utf-8", newline="") as f:
+        return {raw_root.joinpath(*Path(row["member"]).parts[-5:]) for row in csv.DictReader(f) if row["own_test_seed42"] == "1"}
+
+
+def index_clips(raw_root: Path, allowed: set[Path] | None = None) -> dict[tuple[str, str, str], list[Path]]:
+    """Clips grouped by (kind, race, gender). Layout: <raw_root>/<category>/<race>/<gender>/<id>/<clip>.mp4.
+    With allowed, only those clips are indexed."""
     index: dict[tuple[str, str, str], list[Path]] = defaultdict(list)
     for kind, category in CATEGORY_DIRS.items():
         for path in sorted((raw_root / category).glob("*/*/*/*.mp4")):
+            if allowed is not None and path not in allowed:
+                continue
             race, gender = path.parts[-4], path.parts[-3]
             index[(kind, race, gender)].append(path)
     return index

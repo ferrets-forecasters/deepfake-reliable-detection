@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import random
 from pathlib import Path
 
@@ -17,6 +18,7 @@ from deepfake_detection.data.segment_embedding import VIDEOMAE_FRAMES, SegmentEm
 from deepfake_detection.data.tiling import index_clips
 from deepfake_detection.evaluation.checkpoint_scoring import CheckpointScorer
 from deepfake_detection.reference import load_reference_repo
+from deepfake_detection.utils.gpu import cap_gpu_memory
 
 
 def main() -> None:
@@ -26,8 +28,10 @@ def main() -> None:
     parser.add_argument("--model", default="moe_combined")
     parser.add_argument("--per-kind", type=int, default=100)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--gpu-memory-fraction", type=float, default=None, help="cap this process's CUDA memory, for running beside trainings")
     args = parser.parse_args()
 
+    cap_gpu_memory(args.gpu_memory_fraction)
     config = load_config(args.config)
     root = config.raw_dir("fakeavceleb") / "FakeAVCeleb_v1.2"
     index = index_clips(root)
@@ -40,7 +44,7 @@ def main() -> None:
     embedder = SegmentEmbedder()
     detector = FaceLandmarkDetector(max_faces=1, margin=0.25)
 
-    scores, labels, kinds = [], [], []
+    scores, labels, kinds, scored_paths = [], [], [], []
     for path, label, kind in tqdm(chosen, desc="clips"):
         cap = cv2.VideoCapture(str(path))
         cap.set(cv2.CAP_PROP_POS_FRAMES, int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) // 2)
@@ -57,6 +61,14 @@ def main() -> None:
         scores.append(scorer.score_visual_only(feature)[0])
         labels.append(label)
         kinds.append(kind)
+        scored_paths.append(path)
+
+    out_dir = config.paths.predictions_dir(f"{args.model}_on_fakeavceleb_still_frames")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with open(out_dir / "clips.csv", "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["clip", "kind", "label", "p_fake"])
+        writer.writerows([str(p.relative_to(root)), k, y, f"{s:.6f}"] for p, k, y, s in zip(scored_paths, kinds, labels, scores))
 
     scores, labels, kinds = np.array(scores), np.array(labels), np.array(kinds)
     print(f"clips scored {len(scores)} of {len(chosen)}")

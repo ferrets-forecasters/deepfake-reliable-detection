@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 import cv2
 import numpy as np
 import torch
@@ -9,6 +11,28 @@ WHISPER_SAMPLE_RATE = 16000
 WHISPER_MEL_FRAMES = 3000
 VIDEOMAE_FRAMES = 16
 CROP_SIZE = 224
+
+
+class _EncoderOnly(torch.nn.Module):
+    def __init__(self, encoder: torch.nn.Module):
+        super().__init__()
+        self.encoder = encoder
+
+
+def load_whisper_encoder(name: str, device: torch.device) -> torch.nn.Module:
+    """The Whisper encoder alone, with the weights of the official checkpoint. The decoder is never
+    built, so the card holds 1.2 GB of weights for medium instead of 3 GB and loading peaks lower."""
+    import whisper
+    from whisper.model import AudioEncoder, ModelDimensions
+
+    download_root = os.path.join(os.getenv("XDG_CACHE_HOME", os.path.join(os.path.expanduser("~"), ".cache")), "whisper")
+    path = whisper._download(whisper._MODELS[name], download_root, False)
+    checkpoint = torch.load(path, map_location="cpu", mmap=True, weights_only=True)
+    dims = ModelDimensions(**checkpoint["dims"])
+    encoder = AudioEncoder(dims.n_mels, dims.n_audio_ctx, dims.n_audio_state, dims.n_audio_head, dims.n_audio_layer)
+    prefix = "encoder."
+    encoder.load_state_dict({k[len(prefix):]: v for k, v in checkpoint["model_state_dict"].items() if k.startswith(prefix)})
+    return _EncoderOnly(encoder.to(device)).eval()
 
 
 class SegmentEmbedder:
@@ -29,7 +53,7 @@ class SegmentEmbedder:
         self._whisper = whisper
         self.processor = VideoMAEImageProcessor.from_pretrained(VIDEOMAE_ID)
         self.video_model = load_videomae(VIDEOMAE_ID).to(self.device).eval()
-        self.audio_model = whisper.load_model(whisper_name, device=self.device).eval()
+        self.audio_model = load_whisper_encoder(whisper_name, self.device)
 
     def _autocast(self):
         return torch.autocast(device_type=self.device.type, dtype=torch.float16, enabled=self.half)

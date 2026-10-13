@@ -16,6 +16,7 @@ from deepfake_detection.data.face_crop import FaceBoxTracker, MultiFaceTracker
 from deepfake_detection.data.segment_embedding import VIDEOMAE_FRAMES, WHISPER_SAMPLE_RATE, SegmentEmbedder
 from deepfake_detection.evaluation.checkpoint_scoring import CheckpointScorer
 from deepfake_detection.reference import load_reference_repo
+from deepfake_detection.utils.gpu import cap_gpu_memory
 
 SEGMENT_SECONDS = 2.0
 COLUMNS = [
@@ -50,8 +51,10 @@ def main() -> None:
     parser.add_argument("--model", default="moe_combined")
     parser.add_argument("--dataset", default="fakeavceleb_tiled")
     parser.add_argument("--per-plan", type=int, default=10)
+    parser.add_argument("--gpu-memory-fraction", type=float, default=None, help="cap this process's CUDA memory, for running beside trainings")
     args = parser.parse_args()
 
+    cap_gpu_memory(args.gpu_memory_fraction)
     config = load_config(args.config)
     repro = yaml.safe_load(Path(args.reproduction).read_text(encoding="utf-8"))
     reference = load_reference_repo(_project_root() / repro["reference_repo"])

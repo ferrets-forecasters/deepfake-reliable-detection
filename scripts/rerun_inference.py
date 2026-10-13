@@ -10,10 +10,13 @@ from pathlib import Path
 from deepfake_detection.config import load_config
 
 SCRIPTS = Path(__file__).parent
+CAPPED_SCRIPTS = {"demo.py", "score_tiled_set.py", "score_still_frames.py"}
 PAIR = {"real": "RealVideo-RealAudio/African/men/id00076/00109.mp4", "fake": "FakeVideo-FakeAudio/African/men/id00076/00109_10_id00476_wavtolip.mp4"}
 
 
 def videos(folder: Path, *suffixes: str) -> list[str]:
+    if not folder.exists():
+        return []
     return sorted(str(p) for p in folder.iterdir() if p.suffix.lower() in suffixes)
 
 
@@ -30,12 +33,21 @@ def steps(config, model: str) -> list[tuple[str, list[str]]]:
         ("summary_tiled_first_segment", ["summarize_multi_subject.py", *m, "--tiled", "fakeavceleb_tiled_lossless"]),
         ("summary_tiled_every_segment", ["summarize_multi_subject.py", *m, "--conversation", "fakeavceleb_tiled_lossless"]),
     ]
+    own_test = [
+        ("conversation_own_test", ["demo.py", "--video", *videos(root / "fakeavceleb_conversation_own_test_lossless" / "raw", ".mkv"), "--name", "fakeavceleb_conversation_own_test_lossless", *m]),
+        ("tiled_own_test", ["demo.py", "--video", *videos(root / "fakeavceleb_tiled_own_test_lossless" / "raw", ".mkv"), "--name", "fakeavceleb_tiled_own_test_lossless", *m]),
+        ("tiled_first_segment_own_test", ["score_tiled_set.py", "--dataset", "fakeavceleb_tiled_own_test_lossless", "--per-plan", "20", *m]),
+        ("summary_conversation_own_test", ["summarize_multi_subject.py", *m, "--conversation", "fakeavceleb_conversation_own_test_lossless"]),
+        ("summary_tiled_first_segment_own_test", ["summarize_multi_subject.py", *m, "--tiled", "fakeavceleb_tiled_own_test_lossless"]),
+        ("summary_tiled_every_segment_own_test", ["summarize_multi_subject.py", *m, "--conversation", "fakeavceleb_tiled_own_test_lossless"]),
+    ]
     return [
         *seed_tests,
         ("embedding_analyses", ["analyze_embeddings.py"]),
         ("conversation_lossless", ["demo.py", "--video", *videos(root / "fakeavceleb_conversation_lossless" / "raw", ".mkv"), "--name", "fakeavceleb_conversation_lossless", *m]),
         ("tiled_lossless", ["demo.py", "--video", *videos(root / "fakeavceleb_tiled_lossless" / "raw", ".mkv"), "--name", "fakeavceleb_tiled_lossless", *m]),
-        ("tiled_first_segment", ["score_tiled_set.py", "--dataset", "fakeavceleb_tiled_lossless", *m]),
+        ("tiled_first_segment", ["score_tiled_set.py", "--dataset", "fakeavceleb_tiled_lossless", "--per-plan", "20", *m]),
+        *own_test,
         ("reencoded", ["infer_multi_subject.py", str(root / "fakeavceleb_reencoded" / "raw"), "--name", "fakeavceleb_reencoded", *m]),
         ("original", ["infer_multi_subject.py", *originals, "--name", "fakeavceleb_original", *m]),
         *summaries,
@@ -53,6 +65,7 @@ def main() -> None:
     parser.add_argument("--model", default="moe_combined_retrain")
     parser.add_argument("--config", default=None)
     parser.add_argument("--only", nargs="*", default=None)
+    parser.add_argument("--gpu-memory-fraction", type=float, default=None, help="cap each scoring step's CUDA memory so the chain can run beside trainings")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -67,8 +80,10 @@ def main() -> None:
             continue
         started = time.time()
         print(f"[{number}/{len(plan)}] {name}: start {time.strftime('%H:%M:%S')}", flush=True)
-        with open(out / f"{name}.log", "w", encoding="utf-8") as log:
-            code = subprocess.run([sys.executable, str(SCRIPTS / command[0]), *command[1:]], stdout=log, stderr=subprocess.STDOUT).returncode
+        extra = ["--gpu-memory-fraction", str(args.gpu_memory_fraction)] if args.gpu_memory_fraction and command[0] in CAPPED_SCRIPTS else []
+        extra += ["--skip-done"] if command[0] == "demo.py" else []
+        with open(out / f"{name}.log", "a", encoding="utf-8") as log:
+            code = subprocess.run([sys.executable, str(SCRIPTS / command[0]), *command[1:], *extra], stdout=log, stderr=subprocess.STDOUT).returncode
         print(f"[{number}/{len(plan)}] {name}: exit {code} after {time.time() - started:.0f} s", flush=True)
         if code == 0:
             with open(done_file, "a", encoding="utf-8") as f:
