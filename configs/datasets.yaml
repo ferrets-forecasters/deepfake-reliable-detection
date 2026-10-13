@@ -1,0 +1,85 @@
+# Where each dataset's files live and how its manifest is laid out.
+# Every dataset sits in <datasets_root>/<name>/ and has the three folders below.
+# Code reads this file and the manifest CSV; it never builds dataset paths by hand.
+
+layout:
+  raw: raw              # downloaded videos and/or images
+  embedding: embedding  # frozen-encoder features, <real|fake>/<sample_id>_seg<NNN>.npz, one file per 2-second segment
+  labels: labels        # manifest and annotation files
+  manifest: manifest.csv
+
+# One row per sample (a video or an image). Paths are relative to <datasets_root>/<name>/.
+manifest:
+  columns:
+    - sample_id          # file stem of the video or image, unique within the dataset
+    - media_type         # video | image
+    - raw_path           # file under raw/, empty until the raw files are linked
+    - embedding_pattern  # glob under embedding/ that selects the sample's segment files
+    - num_segments       # number of segment files found for the sample
+    - label              # 0 real, 1 fake
+    - manipulation_type  # real | audio_video | video_only | unknown
+    - subject_id         # identity key used for subject-level splits
+    - audio_available    # 1 if audio carries a manipulation signal, 0 if audio is zeroed in training
+
+# subject_rule names the function in deepfake_detection.data.subject_rules that derives subject_id from a sample id.
+datasets:
+  - name: polyglotfake
+    modality: audio_video
+    media_types: [video]
+    fake_type: audio_video
+    audio_available: true
+    subject_rule: polyglotfake
+    real: 3944
+    fake: 67531
+    segments: 71475
+    source_url: https://github.com/tobuta/PolyGlotFake
+    download_url: https://drive.google.com/file/d/1aBWLii-TbrpKNLSTwpmjqu98eKovWLxF/view
+    access: direct_link
+  - name: hidf
+    modality: video
+    media_types: [video]
+    fake_type: video_only
+    audio_available: true
+    subject_rule: hidf
+    real: 5046
+    fake: 5045
+    segments: 10091
+    source_url: https://github.com/DSAIL-SKKU/HiDF
+    download_url: https://zenodo.org/records/16140829
+    access: public_clone
+  - name: fakeavceleb
+    modality: audio_video
+    media_types: [video]
+    fake_type: audio_video
+    audio_available: true
+    subject_rule: fakeavceleb
+    real: 599
+    fake: 40235
+    segments: 40834
+    source_url: https://github.com/DASH-Lab/FakeAVCeleb
+    download_url: https://docs.google.com/forms/u/1/d/e/1FAIpQLSfPDd3oV0auqmmWEgCSaTEQ6CGpFeB-ozQJ35x-B_0Xjd93bw/viewform
+    access: request_form
+  - name: celebdfv2
+    modality: video
+    media_types: [video]
+    fake_type: video_only
+    audio_available: false
+    subject_rule: celebdfv2
+    real: 5529
+    fake: 32689
+    segments: 38218
+    source_url: https://github.com/yuezunli/celeb-deepfakeforensics
+    download_url: https://forms.gle/2jYBby6y1FBU3u6q9
+    access: request_form
+  - name: ffpp
+    modality: video
+    media_types: [video]
+    fake_type: video_only
+    audio_available: false
+    subject_rule: ffpp
+    real: 7369
+    fake: 55458
+    segments: 62827
+    source_url: https://github.com/ondyari/FaceForensics
+    download_url: https://docs.google.com/forms/d/e/1FAIpQLSdRRR3L5zAv6tQ_CKxmK4W96tAab_pfBu2EKAgQbeDVhmXagg/viewform
+    access: request_form

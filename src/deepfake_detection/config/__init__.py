@@ -1,6 +1,7 @@
 from .config import (
     AudioPreprocessConfig,
     Config,
+    DatasetLayout,
     DatasetSpec,
     EncoderConfig,
     EncoderSpec,
@@ -16,6 +17,7 @@ from .config import (
 __all__ = [
     "AudioPreprocessConfig",
     "Config",
+    "DatasetLayout",
     "DatasetSpec",
     "EncoderConfig",
     "EncoderSpec",

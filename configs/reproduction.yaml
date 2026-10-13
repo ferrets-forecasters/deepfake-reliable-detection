@@ -1,0 +1,25 @@
+# Re-score the exported checkpoints with the reference (old) repo's own code
+# and compare with the numbers each run stored in its results.yaml.
+reference_repo: repo/research-deepfake_classification   # relative to the project root, read-only
+split:
+  val_ratio: 0.2
+  seed: 42
+loader:
+  batch_size: 16
+  num_workers: 4
+  amp: true          # the reported test passes ran under float16 autocast
+tolerance: 0.001     # largest accepted absolute difference per metric
+# experiment: combined = the 20% test subjects of every dataset; leave_out = the whole held-out dataset;
+# split_70_30 = the 30% test subjects of one dataset (the 56/14/30 split that follows the CAD protocol).
+# scope names the test set in results/inferences/<model>_on_<scope>/.
+models:
+  moe_combined: {experiment: combined, scope: combined_test}
+  concat_combined: {experiment: combined, scope: combined_test}
+  moe_leave_polyglotfake: {experiment: leave_out, held_out: polyglotfake, scope: polyglotfake}
+  moe_leave_hidf: {experiment: leave_out, held_out: hidf, scope: hidf}
+  moe_leave_fakeavceleb: {experiment: leave_out, held_out: fakeavceleb, scope: fakeavceleb}
+  moe_leave_celebdfv2: {experiment: leave_out, held_out: celebdfv2, scope: celebdfv2}
+  moe_leave_ffpp: {experiment: leave_out, held_out: ffpp, scope: ffpp}
+  moe_fakeavceleb_70_30: {experiment: split_70_30, dataset: fakeavceleb, scope: fakeavceleb_70_30_test}
+  moe_combined_retrain: {experiment: combined, scope: combined_test_seed42}
+  concat_combined_retrain: {experiment: combined, scope: combined_test_seed42}

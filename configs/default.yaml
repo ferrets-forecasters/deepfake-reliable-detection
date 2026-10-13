@@ -5,50 +5,15 @@ paths:
   # Override with the DEEPFAKE_PROJECT_ROOT environment variable if the repo is used standalone.
   datasets_root: datasets
   models_root: models
-  inferences_root: inferences
-  analyses_root: analyses
+  # results/ always holds these four folders; each holds one folder per named element
+  # (a model on a dataset, a benchmark run, an analysis topic, an XAI method on a model and dataset).
+  inferences_root: results/inferences
+  metrics_root: results/metrics
+  analyses_root: results/analyses
+  xai_root: results/xai
 
-datasets:
-  - name: polyglotfake
-    modality: audio_video
-    real: 3944
-    fake: 67531
-    segments: 71475
-    source_url: https://github.com/tobuta/PolyGlotFake
-    download_url: https://drive.google.com/file/d/1aBWLii-TbrpKNLSTwpmjqu98eKovWLxF/view
-    access: direct_link
-  - name: hidf
-    modality: video
-    real: 5046
-    fake: 5045
-    segments: 10091
-    source_url: https://github.com/DSAIL-SKKU/HiDF
-    download_url: https://zenodo.org/records/16140829
-    access: public_clone
-  - name: fakeavceleb
-    modality: audio_video
-    real: 599
-    fake: 40235
-    segments: 40834
-    source_url: https://github.com/DASH-Lab/FakeAVCeleb
-    download_url: https://docs.google.com/forms/u/1/d/e/1FAIpQLSfPDd3oV0auqmmWEgCSaTEQ6CGpFeB-ozQJ35x-B_0Xjd93bw/viewform
-    access: request_form
-  - name: celebdfv2
-    modality: video
-    real: 5529
-    fake: 32689
-    segments: 38218
-    source_url: https://github.com/yuezunli/celeb-deepfakeforensics
-    download_url: https://forms.gle/2jYBby6y1FBU3u6q9
-    access: request_form
-  - name: ffpp
-    modality: video
-    real: 7369
-    fake: 55458
-    segments: 62827
-    source_url: https://github.com/ondyari/FaceForensics
-    download_url: https://docs.google.com/forms/d/e/1FAIpQLSdRRR3L5zAv6tQ_CKxmK4W96tAab_pfBu2EKAgQbeDVhmXagg/viewform
-    access: request_form
+# Dataset folders, manifest layout and the dataset registry live in datasets.yaml.
+datasets_config: datasets.yaml
 
 split:
   train: 0.6

@@ -1,5 +1,5 @@
 from .audio_features import extract_audio_waveform, waveform_to_mel
-from .face_crop import FaceBoxTracker
+from .face_crop import FaceBoxTracker, FaceTrack, MultiFaceTracker, link_boxes
 from .feature_dataset import CachedFeatureDataset
 from .manifest import SegmentRecord, read_manifest, write_manifest
 from .manifest_builders import (
@@ -10,18 +10,22 @@ from .manifest_builders import (
 )
 from .segmentation import segment_windows, video_duration_seconds
 from .splits import subject_level_split
-from .video_frames import extract_video_frames
+from .video_frames import extract_multi_face_frames, extract_video_frames
 
 __all__ = [
     "CachedFeatureDataset",
     "FaceBoxTracker",
+    "FaceTrack",
+    "MultiFaceTracker",
     "SegmentRecord",
     "build_celebdfv2_manifest",
     "build_fakeavceleb_manifest",
     "build_ffpp_manifest",
     "build_generic_manifest",
     "extract_audio_waveform",
+    "extract_multi_face_frames",
     "extract_video_frames",
+    "link_boxes",
     "read_manifest",
     "segment_windows",
     "subject_level_split",

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import torch
 from torch import nn
-from transformers import VideoMAEModel
 
 from deepfake_detection.config import Config
+from deepfake_detection.encoders.videomae_weights import load_videomae
 
 
 class VisualEncoderOutput:
@@ -26,7 +26,7 @@ class VisualEncoder(nn.Module):
 
     def __init__(self, config: Config):
         super().__init__()
-        self.model = VideoMAEModel.from_pretrained(config.encoders.visual.model_id)
+        self.model = load_videomae(config.encoders.visual.model_id)
         self.hidden_size = config.encoders.visual.hidden_size
         self.tubelet_steps = config.preprocessing.video.num_frames // self.model.config.tubelet_size
         num_patches_per_frame = (config.preprocessing.video.image_size // self.model.config.patch_size) ** 2

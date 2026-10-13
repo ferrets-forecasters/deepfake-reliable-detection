@@ -21,7 +21,18 @@ dependencies = [
     "pyyaml",
     "av",
     "pandas",
+    "speechbrain>=1.1.1",
 ]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cuda" }
+torchvision = { index = "pytorch-cuda" }
+torchaudio = { index = "pytorch-cuda" }
+
+[[tool.uv.index]]
+name = "pytorch-cuda"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true

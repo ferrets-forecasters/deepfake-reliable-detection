@@ -1,0 +1,33 @@
+# Training runs of 2026-10-11, in the order they run. Each entry: output folder under models/, the old repo's config, overrides.
+# Every run resumes after its last finished epoch, and a run with a results.yaml is skipped.
+common_overrides: [performance.num_workers=0]
+runs:
+  - {name: moe_combined_retrain, config: moe_fusion.yaml, overrides: []}
+  - {name: moe_no_gate_loss, config: moe_fusion.yaml, overrides: [loss.gate_supervision_weight=0]}
+  - {name: concat_combined_retrain, config: concat.yaml, overrides: []}
+  - {name: audio_only_pure, config: audio_only.yaml, overrides: [model.type=pure_audio]}
+  - {name: video_only_pure, config: video_only.yaml, overrides: [model.type=pure_video]}
+  - {name: moe_combined_seed43, config: moe_fusion.yaml, overrides: [data.seed=43]}
+  - {name: concat_combined_seed43, config: concat.yaml, overrides: [data.seed=43]}
+  - {name: moe_combined_seed44, config: moe_fusion.yaml, overrides: [data.seed=44]}
+  - {name: concat_combined_seed44, config: concat.yaml, overrides: [data.seed=44]}
+  # 5-fold cross validation: fold i is the test, fold i+1 the validation (datasets/<dataset>/labels/cv_folds_k5_seed42.csv)
+  - {name: moe_cv_fold0, config: moe_fusion.yaml, overrides: [data.experiment=all_datasets_kfold, data.fold=0]}
+  - {name: concat_cv_fold0, config: concat.yaml, overrides: [data.experiment=all_datasets_kfold, data.fold=0]}
+  - {name: moe_cv_fold1, config: moe_fusion.yaml, overrides: [data.experiment=all_datasets_kfold, data.fold=1]}
+  - {name: concat_cv_fold1, config: concat.yaml, overrides: [data.experiment=all_datasets_kfold, data.fold=1]}
+  - {name: moe_cv_fold2, config: moe_fusion.yaml, overrides: [data.experiment=all_datasets_kfold, data.fold=2]}
+  - {name: concat_cv_fold2, config: concat.yaml, overrides: [data.experiment=all_datasets_kfold, data.fold=2]}
+  - {name: moe_cv_fold3, config: moe_fusion.yaml, overrides: [data.experiment=all_datasets_kfold, data.fold=3]}
+  - {name: concat_cv_fold3, config: concat.yaml, overrides: [data.experiment=all_datasets_kfold, data.fold=3]}
+  - {name: moe_cv_fold4, config: moe_fusion.yaml, overrides: [data.experiment=all_datasets_kfold, data.fold=4]}
+  - {name: concat_cv_fold4, config: concat.yaml, overrides: [data.experiment=all_datasets_kfold, data.fold=4]}
+  # Leave-one-out re-runs (train on four datasets, test on the whole fifth): the paper's Tabel V now rests on the May runs
+  - {name: moe_leave_polyglotfake_retrain, config: lodo_leave_polyglot.yaml, overrides: []}
+  - {name: moe_leave_hidf_retrain, config: lodo_leave_hidf.yaml, overrides: []}
+  - {name: moe_leave_fakeavceleb_retrain, config: lodo_leave_fakeavceleb.yaml, overrides: []}
+  - {name: moe_leave_celebdfv2_retrain, config: lodo_leave_celebdfv2.yaml, overrides: []}
+  - {name: moe_leave_ffpp_retrain, config: lodo_leave_ffpp.yaml, overrides: []}
+  # One branch alone, same split and settings (the paper's "Audio-only" and "Video-only" rows)
+  - {name: audio_visual_branch_alone, config: audio_only.yaml, overrides: []}
+  - {name: visual_branch_alone, config: video_only.yaml, overrides: []}
