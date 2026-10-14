@@ -12,6 +12,7 @@ import yaml
 from sklearn.metrics import average_precision_score, confusion_matrix, precision_recall_curve, roc_auc_score, roc_curve
 
 from deepfake_detection.config import load_config
+from deepfake_detection.evaluation.saved_predictions import load_saved_predictions
 
 COMBINED = {"moe_combined": "Gated MoE", "concat_combined": "Static concatenation"}
 HELD_OUT = {"moe_leave_polyglotfake": "PolyglotFake", "moe_leave_hidf": "HiDF", "moe_leave_fakeavceleb": "FakeAVCeleb", "moe_leave_celebdfv2": "CelebDFv2", "moe_leave_ffpp": "FF++"}
@@ -20,10 +21,9 @@ SCOPES = {"moe_combined": "combined_test", "concat_combined": "combined_test", "
 INK, ACCENT = "#222222", "#c8463c"
 
 
-def load(config, model: str) -> dict:
-    path = config.paths.predictions_dir(f"{model}_on_{SCOPES[model]}") / "predictions.npz"
-    with np.load(path, allow_pickle=False) as data:
-        return {k: data[k] for k in data.files}
+def load(config, model: str, suffix: str = "") -> dict:
+    scope = "combined_test_seed42" if suffix and model in COMBINED else SCOPES[model]
+    return load_saved_predictions(config.paths.predictions_dir(f"{model}{suffix}_on_{scope}"))
 
 
 def curve_figure(items: dict[str, dict], path: Path, title_suffix: str) -> None:
@@ -61,26 +61,27 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="ROC and precision-recall curves, confusion counts and error rate by gate weight from the saved predictions of the exported models.")
     parser.add_argument("--config", default=None)
     parser.add_argument("--bins", type=int, default=5)
+    parser.add_argument("--suffix", default="", help="'_retrain' reads the predictions of the re-run models and writes to prediction_curves<suffix>/ so the May figures are kept")
     args = parser.parse_args()
 
     config = load_config(args.config)
-    out_dir = config.paths.results_dir("prediction_curves")
+    out_dir = config.paths.results_dir(f"prediction_curves{args.suffix}")
     out_dir.mkdir(parents=True, exist_ok=True)
     report: dict = {}
 
-    combined = {label: load(config, name) for name, label in COMBINED.items()}
+    combined = {label: load(config, name, args.suffix) for name, label in COMBINED.items()}
     curve_figure(combined, out_dir / "roc_pr_combined_test.png", ", combined test split")
-    held_out = {label: load(config, name) for name, label in HELD_OUT.items()}
+    held_out = {label: load(config, name, args.suffix) for name, label in HELD_OUT.items()}
     curve_figure(held_out, out_dir / "roc_pr_leave_one_out.png", ", held-out dataset")
 
     for name, label in {**COMBINED, **HELD_OUT}.items():
-        d = load(config, name)
+        d = load(config, name, args.suffix)
         tn, fp, fn, tp = confusion_matrix(d["labels"], d["probs"] >= 0.5, labels=[0, 1]).ravel()
         report[name] = {"scope": SCOPES[name], "videos": int(len(d["labels"])), "confusion_at_0.5": {"real_correct": int(tn), "real_flagged": int(fp), "fake_missed": int(fn), "fake_caught": int(tp)},
                         "probabilities_exactly_0.5": int((d["probs"] == 0.5).sum())}
 
     edges = [round(i / args.bins, 3) for i in range(args.bins + 1)]
-    gated = load(config, "moe_combined")
+    gated = load(config, "moe_combined", args.suffix)
     report["moe_combined"]["error_by_alpha"] = alpha_bins(gated, edges)
     report["moe_combined"]["error_by_manipulation_type"] = {
         str(kind): {"videos": int((gated["manip_type"] == kind).sum()), "mean_alpha": round(float(gated["alpha"][gated["manip_type"] == kind].mean()), 3)}

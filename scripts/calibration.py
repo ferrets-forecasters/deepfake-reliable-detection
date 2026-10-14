@@ -9,6 +9,7 @@ from sklearn.metrics import f1_score
 from tqdm import tqdm
 
 from deepfake_detection.config import load_config
+from deepfake_detection.evaluation.saved_predictions import load_saved_predictions
 
 HELD_OUT = {"moe_leave_polyglotfake": ("polyglotfake", "PolyglotFake"), "moe_leave_hidf": ("hidf", "HiDF"), "moe_leave_fakeavceleb": ("fakeavceleb", "FakeAVCeleb"),
             "moe_leave_celebdfv2": ("celebdfv2", "CelebDFv2"), "moe_leave_ffpp": ("ffpp", "FF++")}
@@ -42,6 +43,7 @@ def main() -> None:
     parser.add_argument("--sizes", type=int, nargs="+", default=[20, 50, 100, 500])
     parser.add_argument("--repeats", type=int, default=50)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--suffix", default="", help="'_retrain' scores the re-run leave-one-out models; the result goes to calibration<suffix>/ so the May table is kept")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -49,8 +51,8 @@ def main() -> None:
     report: dict = {}
     print("dataset | labelled videos | macro-F1 at 0.5 | re-fitted threshold | Platt | ECE before | ECE after Platt")
     for model, (scope, label) in tqdm(HELD_OUT.items(), desc="held-out datasets"):
-        with np.load(config.paths.predictions_dir(f"{model}_on_{scope}") / "predictions.npz", allow_pickle=False) as data:
-            probs, labels = data["probs"].astype(float), data["labels"].astype(int)
+        data = load_saved_predictions(config.paths.predictions_dir(f"{model}{args.suffix}_on_{scope}"))
+        probs, labels = data["probs"].astype(float), data["labels"].astype(int)
         margin = logit(probs)
         base_f1 = f1_score(labels, probs >= 0.5, average="macro")
         base_ece = ece(probs, labels)
@@ -76,7 +78,7 @@ def main() -> None:
             }
             print(f"{label} | {size} | {base_f1:.4f} | {np.mean(thresholds):.4f} ± {np.std(thresholds):.4f} | {np.mean(platts):.4f} ± {np.std(platts):.4f} | {base_ece:.4f} | {np.mean(eces):.4f}")
 
-    out_dir = config.paths.results_dir("calibration")
+    out_dir = config.paths.results_dir(f"calibration{args.suffix}")
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "calibration.yaml").write_text(yaml.safe_dump(report, sort_keys=False), encoding="utf-8")
 

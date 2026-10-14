@@ -85,8 +85,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Deepfake verdict per face from a video file or the camera.")
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--video", nargs="+", help="video files to score")
+    source.add_argument("--serve", action="store_true", help="open the upload demo: a local page where a video file is uploaded and scored")
     source.add_argument("--camera", action="store_true", help="record chunks from the camera and microphone and score each one")
     source.add_argument("--list-devices", action="store_true", help="print the camera and microphone names and exit")
+    parser.add_argument("--host", default="127.0.0.1", help="address of the upload demo")
+    parser.add_argument("--port", type=int, default=8765, help="port of the upload demo")
+    parser.add_argument("--keep-uploads", action="store_true", help="keep each uploaded video in temp/demo_uploads instead of deleting it after scoring")
     parser.add_argument("--seconds", type=float, default=10.0, help="camera chunk length, at least 2")
     parser.add_argument("--chunks", type=int, default=0, help="camera chunks to run, 0 until Ctrl-C")
     parser.add_argument("--rolling", type=int, default=5, help="camera chunks in the rolling mean")
@@ -114,6 +118,11 @@ def main() -> None:
     pipeline = build_pipeline(args)
     config = load_config(args.config)
     out_dir = config.paths.predictions_dir(f"{args.model}_on_{args.name}")
+    if args.serve:
+        from deepfake_detection.inference.upload_server import serve
+
+        serve(pipeline, args.host, args.port, _project_root() / "temp" / "demo_uploads", out_dir, args.keep_uploads)
+        return
     if args.camera:
         run_camera(pipeline, args, out_dir)
         return
