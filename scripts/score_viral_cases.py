@@ -59,6 +59,7 @@ def main() -> None:
     parser.add_argument("--diarizer", default="ecapa", choices=["ecapa", "single"])
     parser.add_argument("--threshold", type=float, default=0.5)
     parser.add_argument("--force", action="store_true", help="score again even when a result file exists")
+    parser.add_argument("--claims", nargs="+", default=None, help="score only the cases with these claims, for example fake real (the cut stretches); default every case")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -69,7 +70,8 @@ def main() -> None:
     summary_dir = config.paths.analysis_dir("viral_cases")
     summary_dir.mkdir(parents=True, exist_ok=True)
 
-    todo = [c for c in cases if (root / "raw" / c["file"]).exists() and (args.force or not (out_dir / f"{c['case_id']}.json").exists())]
+    todo = [c for c in cases if (root / "raw" / c["file"]).exists() and (args.force or not (out_dir / f"{c['case_id']}.json").exists())
+            and (not args.claims or c["claim"].strip().lower() in args.claims)]
     missing = [c["case_id"] for c in cases if not (root / "raw" / c["file"]).exists()]
     log = open(out_dir / "progress.log", "a", encoding="utf-8")
     log.write(f"{time.strftime('%F %T')} {len(cases)} cases, {len(todo)} to score, {len(missing)} without a file: {missing}\n")

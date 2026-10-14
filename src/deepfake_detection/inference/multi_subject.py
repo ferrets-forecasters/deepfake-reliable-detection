@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -55,9 +56,10 @@ def crop_track_frames(reader, indices: list[int], boxes: dict) -> list[np.ndarra
     return crops
 
 
-def frame_reader(cap, frame_count: int, max_bytes: float = 600e6):
+def frame_reader(cap, frame_count: int, max_bytes: float = 600e6, forward_gap: int = 150, cache_frames: int = 240):
     """Frame accessor by index. A clip that fits in max_bytes is decoded once, in order, which is much
-    faster than a seek per frame; a longer clip is read by seeking."""
+    faster than a seek per frame; a longer clip is read forward frame by frame for small gaps and by seeking otherwise,
+    keeping the last `cache_frames` frames."""
     width, height = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     if frame_count * width * height * 3 <= max_bytes:
         frames = []
@@ -68,13 +70,28 @@ def frame_reader(cap, frame_count: int, max_bytes: float = 600e6):
             frames.append(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         return lambda index: frames[min(index, len(frames) - 1)]
 
-    cache: dict[int, np.ndarray] = {}
+    cache: OrderedDict[int, np.ndarray] = OrderedDict()
+    position = {"next": 0}  # index of the frame the decoder returns next
 
     def read(index: int) -> np.ndarray:
-        if index not in cache:
+        if index in cache:
+            cache.move_to_end(index)
+            return cache[index]
+        gap = index - position["next"]
+        if 0 <= gap <= forward_gap:
+            for _ in range(gap):  # skipping ahead frame by frame is far cheaper than a seek to an earlier key frame
+                cap.grab()
+        else:
             cap.set(cv2.CAP_PROP_POS_FRAMES, index)
-            _, frame = cap.read()
-            cache[index] = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        ok, frame = cap.read()
+        if not ok:
+            if cache:
+                return next(reversed(cache.values()))
+            raise ValueError(f"could not read frame {index}")
+        position["next"] = index + 1
+        cache[index] = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        while len(cache) > cache_frames:
+            cache.popitem(last=False)
         return cache[index]
 
     return read
