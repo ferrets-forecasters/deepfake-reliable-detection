@@ -12,6 +12,7 @@ from deepfake_detection.config import load_config
 from deepfake_detection.config.config import REPO_ROOT, _project_root
 from deepfake_detection.reference import load_reference_repo
 from deepfake_detection.training.cv_splits import load_kfold_splits
+from deepfake_detection.training.fixed_gate import freeze_gate_at
 from deepfake_detection.training.reference_training import load_reference_training, train_resumable
 
 
@@ -40,6 +41,8 @@ def main() -> None:
 
     seed = int(cfg["data"].get("seed", 42))
     model = run_module.build_model(cfg["model"])
+    if cfg["data"].get("fixed_gate_alpha") is not None:
+        freeze_gate_at(model, float(cfg["data"]["fixed_gate_alpha"]))
     if cfg["data"].get("experiment") == "all_datasets_kfold":
         data = cfg["data"]
         train, val, test, domain_labels, norm_overrides = load_kfold_splits(load_reference_repo(root), config, int(data["fold"]), int(data.get("folds", 5)), seed)

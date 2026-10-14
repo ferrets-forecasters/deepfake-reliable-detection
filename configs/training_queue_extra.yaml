@@ -1,0 +1,12 @@
+# Extra runs asked for on 2026-10-14. Run with: uv run python scripts/train_queue.py --queue configs/training_queue_extra.yaml --max-active 4
+# Same combined split, seed and settings as moe_combined_retrain; each run resumes after its last finished epoch.
+common_overrides: [performance.num_workers=0]
+runs:
+  # FF++ official IDs (000-719 train) to the whole CelebDFv2, four and five manipulation types (small, FF++ only)
+  - {name: moe_ffpp_to_celebdfv2_retrain, config: comp_ffpp_celebdfv2_moe.yaml, overrides: []}
+  - {name: concat_ffpp_to_celebdfv2_retrain, config: comp_ffpp_celebdfv2_concat.yaml, overrides: []}
+  - {name: moe_ffpp5_to_celebdfv2_retrain, config: comp_ffpp5_celebdfv2_moe.yaml, overrides: []}
+  - {name: concat_ffpp5_to_celebdfv2_retrain, config: comp_ffpp5_celebdfv2_concat.yaml, overrides: []}
+  # Ablation: the gate frozen at alpha 0.5 (no dynamic weight, same architecture), and the gate-loss weight at 0.2
+  - {name: moe_fixed_alpha_0_5, config: moe_fusion.yaml, overrides: [loss.gate_supervision_weight=0, data.fixed_gate_alpha=0.5]}
+  - {name: moe_gate_loss_0_2, config: moe_fusion.yaml, overrides: [loss.gate_supervision_weight=0.2]}

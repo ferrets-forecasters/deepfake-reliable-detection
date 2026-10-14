@@ -126,7 +126,7 @@ def mismatch_probe(embedder, scorer, video_feature: np.ndarray, other_waveform: 
     return scorer.margin_from_features(video_feature, embedder.audio_feature(other_waveform))
 
 
-def video_cam_for_segment(embedder, scorer, face_frames: list[np.ndarray], audio_feature: np.ndarray) -> np.ndarray:
+def video_cam_for_segment(embedder, scorer, face_frames: list[np.ndarray], audio_feature: np.ndarray, audio_available: bool = True) -> np.ndarray:
     """The video CAM of one segment ([time steps, grid, grid], positive part) without the audio
     gradients: the margin is differentiated with respect to the pooled VideoMAE vector only, so
     Whisper is not backpropagated and the cost is one forward pass of VideoMAE plus the head."""
@@ -136,7 +136,7 @@ def video_cam_for_segment(embedder, scorer, face_frames: list[np.ndarray], audio
         tokens = embedder.video_model(**inputs).last_hidden_state[0].float()
     video_pooled = tokens.mean(dim=0).detach().requires_grad_(True)
     audio = torch.as_tensor(audio_feature, dtype=torch.float32, device=embedder.device)
-    margin, _ = scorer.fake_margin(scorer.normalize_tensor(video_pooled[None], audio[None]))
+    margin, _ = scorer.fake_margin(scorer.normalize_tensor(video_pooled[None], audio[None], audio_available), audio_available)
     (g_video,) = torch.autograd.grad(margin, [video_pooled])
     grid = 224 // embedder.video_model.config.patch_size
     steps = tokens.shape[0] // (grid * grid)

@@ -40,11 +40,11 @@ class CheckpointScorer:
         audio = (audio_feats - self.stats["audio_mean"]) / self.stats["audio_std"]
         return np.concatenate([video, audio], axis=1).astype(np.float32)
 
-    def normalize_tensor(self, video_feats: torch.Tensor, audio_feats: torch.Tensor) -> torch.Tensor:
-        """Same as normalize, on tensors, so gradients reach the raw encoder outputs."""
+    def normalize_tensor(self, video_feats: torch.Tensor, audio_feats: torch.Tensor, audio_available: bool = True) -> torch.Tensor:
+        """Same as normalize, on tensors, so gradients reach the raw encoder outputs. Without audio the audio half is zero after normalisation."""
         s = self._stat_tensors
         video = (video_feats - s["video_mean"]) / s["video_std"]
-        audio = (audio_feats - s["audio_mean"]) / s["audio_std"]
+        audio = (audio_feats - s["audio_mean"]) / s["audio_std"] if audio_available else torch.zeros_like(audio_feats)
         return torch.cat([video, audio], dim=-1)
 
     def _forward(self, x: torch.Tensor, audio_available: bool = True):
@@ -73,12 +73,12 @@ class CheckpointScorer:
         logits, alpha = self._forward(torch.from_numpy(x), audio_available=False)
         return float(torch.softmax(logits, dim=-1)[0, 1]), (float(alpha[0]) if alpha is not None else None)
 
-    def fake_margin(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor | None]:
+    def fake_margin(self, x: torch.Tensor, audio_available: bool = True) -> tuple[torch.Tensor, torch.Tensor | None]:
         """Differentiable fake logit minus real logit for x [T, 1792], and the gate alpha.
         The model stays in eval mode (dropout off) and cuDNN is switched off for the forward
         pass, because cuDNN's recurrent backward is only allowed in training mode."""
         with torch.backends.cudnn.flags(enabled=False):
-            logits, alpha = self._forward(x)
+            logits, alpha = self._forward(x, audio_available=audio_available)
         return logits[0, 1] - logits[0, 0], (alpha[0] if alpha is not None else None)
 
     def margin_from_features(self, video_feat: np.ndarray, audio_feat: np.ndarray) -> float:
