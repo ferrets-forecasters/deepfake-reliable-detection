@@ -239,6 +239,7 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=3, help="parallel ffmpeg processes")
     parser.add_argument("--bootstrap", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--summary-only", action="store_true", help="skip scoring and summarize the predictions that exist")
     parser.add_argument("--manifest", type=Path, default=None, help="score the clips of this manifest (written by this script or by pack_sweep_subset.py) instead of selecting and encoding videos")
     args = parser.parse_args()
 
@@ -255,7 +256,10 @@ def main() -> None:
         write_manifest(rows, root)
     with open(out_dir / "progress.log", "a", encoding="utf-8") as log:
         log.write(f"{time.strftime('%F %T')} {len({r['video_id'] for r in rows})} videos, {len(rows)} clips, backends {args.backends}\n")
-        score_backends(config, args, rows, log)
+        if args.summary_only:
+            args.backends = [b for b in args.backends if (config.paths.predictions_dir(f"{args.model if b == 'paper_model' else b}_on_{args.name}") / "predictions.csv").exists()]
+        else:
+            score_backends(config, args, rows, log)
     print_table(summarize(config, args, rows, out_dir))
 
 
