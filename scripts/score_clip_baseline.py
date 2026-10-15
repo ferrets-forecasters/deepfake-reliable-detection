@@ -7,11 +7,7 @@ import sys
 import time
 from pathlib import Path
 
-import cv2
-import numpy as np
 import torch
-from PIL import Image
-from torchvision import transforms
 from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -19,18 +15,12 @@ from remote_zip import DRIVE_URL, open_remote  # noqa: E402
 
 from deepfake_detection.config import load_config  # noqa: E402
 from deepfake_detection.data.face_crop import FaceLandmarkDetector  # noqa: E402
+from deepfake_detection.inference.clip_detector import face_crops, preprocess  # noqa: E402
 
 CELEBDF_ZIP_ID = "1ycE03-UpDrrTKfem5FSewMNf5mtHL5Cw"
 CELEBDF_TEST_LIST = "List_of_testing_videos.txt"
-CLIP_MEAN, CLIP_STD = (0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)
 COLUMNS = ["video_id", "dataset", "label", "manip_type", "p_fake", "frames_scored", "frames_requested", "path"]
 FAKE_FOLDERS = {"Celeb-synthesis"}
-
-
-def preprocess():
-    """The CLIP image processor of openai/clip-vit-large-patch14 written out: bicubic resize of the short side to 224, centre crop, CLIP mean and std."""
-    return transforms.Compose([transforms.Resize(224, interpolation=transforms.InterpolationMode.BICUBIC), transforms.CenterCrop(224),
-                               transforms.ToTensor(), transforms.Normalize(CLIP_MEAN, CLIP_STD)])
 
 
 def celebdf_official_test(config, fetch: bool) -> list[dict]:
@@ -70,34 +60,6 @@ def own_test(config, dataset: str) -> list[dict]:
         if path.exists():
             out.append({"video_id": r["sample_id"], "dataset": dataset, "label": int(r["label"]), "manip_type": r["manip_type"], "path": path})
     return out
-
-
-def face_crops(path: Path, detector: FaceLandmarkDetector, frames: int) -> tuple[list[Image.Image], int]:
-    """Square crops of the largest face in `frames` evenly spaced frames; frames without a face are dropped."""
-    cap = cv2.VideoCapture(str(path))
-    count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    wanted = set(np.linspace(0, max(count - 1, 0), min(frames, max(count, 1))).round().astype(int).tolist())
-    crops = []
-    for index in range(count):
-        if not cap.grab():
-            break
-        if index not in wanted:
-            continue
-        ok, frame = cap.retrieve()
-        if not ok:
-            continue
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        faces = detector.detect(rgb)
-        if not faces:
-            continue
-        x0, y0, x1, y1 = max((f.box for f in faces), key=lambda b: (b[2] - b[0]) * (b[3] - b[1]))
-        side = int(min(max(x1 - x0, y1 - y0), rgb.shape[0], rgb.shape[1]))
-        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
-        left = int(np.clip(cx - side / 2, 0, rgb.shape[1] - side))
-        top = int(np.clip(cy - side / 2, 0, rgb.shape[0] - side))
-        crops.append(Image.fromarray(rgb[top:top + side, left:left + side]))
-    cap.release()
-    return crops, len(wanted)
 
 
 def main() -> None:
