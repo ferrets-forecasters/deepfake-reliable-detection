@@ -73,3 +73,6 @@ other:
     conversation: {sides: 80, clips: 70, video_auc: 0.9531, real_real: [2, 8], face_auc: 0.9759, faces: [32, 48], two_speakers: 38, turn_end_median: 4.5}
   filtered: {share: [0.20, 0.28], f1: 0.0056, auc: 0.0049}
   size: {videomae_m: 86.2, whisper_m: 305.7, classifier_m: 7.08, videomae_gflop: 270, whisper_gflop: 917}
+
+# Tabel VI column "α Gabungan": mean alpha per dataset of the model trained on all five datasets, seed 42, all test videos
+combined_alpha_seed42: {polyglotfake: 0.174, hidf: 0.456, fakeavceleb: 0.174, celebdfv2: 1.000, ffpp: 1.000}

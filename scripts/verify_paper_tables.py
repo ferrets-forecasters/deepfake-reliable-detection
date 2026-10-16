@@ -75,6 +75,9 @@ def tabel_leave_one_out(report: Report, paper: dict) -> None:
             report.check(f"leave-one-out {dataset} {metric}", got[metric], value,
                          alternative=got["f1_strict"] if metric == "f1" else None)
         report.check(f"leave-one-out {dataset} alpha", float(frame["alpha_best_f1"].mean()), row[3], places=3)
+    combined = seed42("moe_combined_retrain")
+    for dataset, value in paper["combined_alpha_seed42"].items():
+        report.check(f"combined model {dataset} alpha", float(combined[combined.dataset == dataset].alpha_best_f1.mean()), value, places=3)
 
 
 def tabel_two_people(report: Report, paper: dict) -> None:
