@@ -14,21 +14,28 @@ import yaml
 from sklearn.metrics import f1_score, roc_auc_score
 from tqdm import tqdm
 
-sys.path.insert(0, str(Path(__file__).parent))
-from score_clip_baseline import own_test  # noqa: E402
-
 from deepfake_detection.config import load_config  # noqa: E402
-from deepfake_detection.data.face_crop import FaceLandmarkDetector  # noqa: E402
-from deepfake_detection.inference.clip_detector import ClipDetector, face_crops  # noqa: E402
 from deepfake_detection.inference.factory import build_pipeline  # noqa: E402
 from deepfake_detection.utils.watchdog import hang_watchdog  # noqa: E402
 
 FFMPEG = Path(r"C:\tools\ffmpeg\bin\ffmpeg.exe")
 ORIGINAL = "original"
-BACKENDS = ("paper_model", "clip_ln_tuning")
+BACKENDS = ("paper_model",)
 COLUMNS = ["video_id", "dataset", "label", "condition", "p_fake", "units", "seconds", "error"]
 MANIFEST_COLUMNS = ["video_id", "dataset", "label", "condition", "path", "bytes"]
 UNIT_TIMEOUT_S = 300
+
+
+def own_test(config, dataset: str) -> list[dict]:
+    root = config.paths.datasets_root / dataset
+    with open(root / "labels" / "test_split.csv", encoding="utf-8", newline="") as f:
+        rows = [r for r in csv.DictReader(f) if r["own_test_seed42"] == "1" and r["stem_candidates"] == "1"]
+    out = []
+    for r in rows:
+        path = root / "raw" / "test_split" / r["member"]
+        if path.exists():
+            out.append({"video_id": r["sample_id"], "dataset": dataset, "label": int(r["label"]), "manip_type": r["manip_type"], "path": path})
+    return out
 
 
 def select_videos(config, datasets: list[str], per_class: int, seed: int) -> list[dict]:
@@ -96,15 +103,6 @@ class PaperModel:
         return (result.video_p_fake if result.subjects else None), len(result.subjects)
 
 
-class ClipLnTuning:
-    def __init__(self, weights: Path, frames: int):
-        self.detector, self.faces, self.frames = ClipDetector(weights), FaceLandmarkDetector(max_faces=5, margin=0.25), frames
-
-    def __call__(self, path: Path) -> tuple[float | None, int]:
-        crops, _ = face_crops(path, self.faces, self.frames)
-        return (float(np.mean(self.detector.p_fake(crops))) if crops else None), len(crops)
-
-
 def read_done(csv_path: Path) -> set[tuple[str, str]]:
     if not csv_path.exists():
         return set()
@@ -123,7 +121,7 @@ def score_backends(config, args, rows: list[dict], log) -> None:
         todo = [r for r in rows if (r["video_id"], r["condition"]) not in done]
         if not todo:
             continue
-        scorer = PaperModel(config, args.model) if backend == "paper_model" else ClipLnTuning(args.weights, args.frames)
+        scorer = PaperModel(config, args.model)
         new_file = not csv_path.exists()
         begin, base = time.time(), finished
         with open(csv_path, "a", encoding="utf-8", newline="") as f:
@@ -226,7 +224,7 @@ def print_table(summary: dict) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Compression sweep: the same own-test videos re-encoded with H.264 at several CRF levels, scored by the paper model and the CLIP LN-tuning detector. Resumable; one row per video, condition and backend.")
+    parser = argparse.ArgumentParser(description="Compression sweep: the same own-test videos re-encoded with H.264 at several CRF levels, scored by the paper model. Resumable; one row per video and condition.")
     parser.add_argument("--config", default=None)
     parser.add_argument("--name", default="compression_sweep")
     parser.add_argument("--model", default="moe_combined_retrain")
@@ -234,8 +232,6 @@ def main() -> None:
     parser.add_argument("--per-class", type=int, default=60)
     parser.add_argument("--crf", nargs="+", type=int, default=[23, 28, 35])
     parser.add_argument("--backends", nargs="+", default=list(BACKENDS), choices=BACKENDS)
-    parser.add_argument("--frames", type=int, default=16)
-    parser.add_argument("--weights", type=Path, default=None)
     parser.add_argument("--workers", type=int, default=3, help="parallel ffmpeg processes")
     parser.add_argument("--bootstrap", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=42)
@@ -244,7 +240,6 @@ def main() -> None:
     args = parser.parse_args()
 
     config = load_config(args.config)
-    args.weights = args.weights or config.paths.datasets_root.parent / "external" / "sota" / "deepfake-detection" / "weights" / "model.torchscript"
     root = config.paths.datasets_root / args.name
     out_dir = config.paths.results_dir(args.name)
     out_dir.mkdir(parents=True, exist_ok=True)

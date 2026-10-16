@@ -30,9 +30,6 @@ STEPS = [
     Step("speaker_splits", ["count_speaker_splits.py"], "results/analyses/single_voice_split_count/summary.yaml", 15),
     Step("dataset_releases", ["check_dataset_releases.py"], "results/metrics/dataset_releases/releases.yaml", 900),
     Step("benchmark_faces", ["benchmark_faces.py"], "results/metrics/benchmark_faces/summary.yaml", 420, needs_idle_gpu=True),
-    Step("clip_baseline_hidf", ["score_clip_baseline.py", "--scope", "own_test_hidf"], None, 2400),
-    Step("clip_baseline_fakeavceleb", ["score_clip_baseline.py", "--scope", "own_test_fakeavceleb"], None, 4200),
-    Step("clip_baseline_compare", ["compare_clip_baseline.py"], None, 60),
     Step("viral_cases_score", ["score_viral_cases.py", "--model", "moe_combined_retrain"], "results/analyses/viral_cases/summary.yaml", 900, default=False),
 ]
 

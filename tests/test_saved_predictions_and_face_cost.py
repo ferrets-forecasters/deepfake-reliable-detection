@@ -79,16 +79,3 @@ def test_viral_case_summary_row_compares_the_verdict_with_the_claim():
     assert unknown["agrees_with_claim"] == "-"
     no_face = summary_row(case, {"video_p_fake": float("nan"), "threshold": 0.5, "duration": 3.0, "subjects": []}, {"width": 1, "height": 1, "fps": 1})
     assert no_face["video_verdict"] == "no_face" and no_face["agrees_with_claim"] == "-"
-
-
-def test_clip_preprocessing_gives_a_224_tensor_and_the_comparison_pairs_the_auc_difference():
-    from PIL import Image
-
-    tensor = load_script("score_clip_baseline").preprocess()(Image.fromarray(np.zeros((300, 200, 3), dtype=np.uint8)))
-    assert tuple(tensor.shape) == (3, 224, 224)
-    compare = load_script("compare_clip_baseline")
-    labels = np.array([0, 0, 0, 1, 1, 1] * 5)
-    better = np.array([0.1, 0.2, 0.3, 0.7, 0.8, 0.9] * 5)
-    assert compare.metrics(labels, better)["auc"] == 1.0
-    result = compare.bootstrap(labels, better, 1 - better, resamples=50, seed=1)
-    assert result["auc_difference_to_baseline"] == 1.0

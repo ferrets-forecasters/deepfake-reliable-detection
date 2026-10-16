@@ -1,0 +1,75 @@
+# Values the paper prints (draft/manuscripts, paper_docx). Read by scripts/verify_paper_tables.py.
+# Each pair is [mean, sd].
+seeds:
+  gate:   {f1: [0.9215, 0.0046], ap: [0.9939, 0.0005], auc: [0.9752, 0.0012]}
+  static: {f1: [0.9147, 0.0123], ap: [0.9948, 0.0016], auc: [0.9770, 0.0050]}
+folds:
+  gate:   {f1: [0.9210, 0.0059], ap: [0.9930, 0.0014], auc: [0.9736, 0.0038]}
+  static: {f1: [0.9193, 0.0088], ap: [0.9947, 0.0008], auc: [0.9760, 0.0024]}
+pooled_videos: 54579
+pooled_difference: {f1: 0.0017, auc: -0.0014, ap: -0.0014}
+
+# f1, ap, auc, mean alpha
+leave_one_out:
+  polyglotfake: [0.6729, 0.9891, 0.8875, 0.350]
+  hidf:         [0.6814, 0.7560, 0.7767, 0.183]
+  fakeavceleb:  [0.3772, 0.9991, 0.9196, 0.465]
+  celebdfv2:    [0.6553, 0.9394, 0.7601, 1.000]
+  ffpp:         [0.5509, 0.9556, 0.7570, 1.000]
+
+# Tabel VIII, rows "dua orang, satu audio", first two seconds
+two_people_first_segment:
+  video_auc: {single: 0.7900, per_person: 0.9190}
+  accuracy: {single: 0.8250, per_person: 0.9250}
+  face_auc: 0.9001
+  faces: [100, 140]
+
+# Tabel X: f1 at 0.5, 20 videos, 500 videos, ece
+calibration:
+  PolyglotFake: [0.6729, 0.6933, 0.7311, 0.1692]
+  HiDF:         [0.6814, 0.6821, 0.7143, 0.1697]
+  FakeAVCeleb:  [0.3772, 0.5742, 0.5967, 0.4599]
+  CelebDFv2:    [0.6553, 0.6245, 0.6529, 0.0800]
+  FF++:         [0.5509, 0.5731, 0.6032, 0.3157]
+
+# Hasil III.A text, seed 42: f1, auc, ap (null where the paper prints none)
+ablation_seed42:
+  visual_branch_alone:       [0.8780, 0.9608, 0.9913]
+  audio_visual_branch_alone: [0.9106, 0.9795, 0.9957]
+  video_only_pure:           [0.8889, 0.9761, 0.9959]
+  audio_only_pure:           [0.6835, 0.8946, 0.9813]
+  moe_no_gate_loss:          [0.9036, 0.9750, null]
+  moe_fixed_alpha_0_5:       [0.9039, 0.9785, 0.9963]
+  moe_gate_loss_0_2:         [0.9121, 0.9735, 0.9949]
+
+# gate f1, gate auc, static f1, static auc
+per_dataset_seed42:
+  fakeavceleb: [0.9335, 0.9880, 0.8127, 0.9850]
+  celebdfv2:   [0.7488, 0.8996, 0.7776, 0.9142]
+gate_minus_video_only_f1_seed42: {polyglotfake: 0.103, fakeavceleb: 0.163, hidf: 0.026}
+
+alpha_seed42:
+  audio_video: 0.173
+  video_only: 0.881
+  hidf: 0.558
+  audio_video_n: 6033
+  video_only_n: 3243
+  no_audio_n: 2371
+  error_by_alpha: [[5209, 0.003], [1687, 0.021], [3789, 0.095]]
+alpha_other_runs:
+  moe_no_gate_loss: [0.867, 0.979]
+
+# Hasil text outside the tables
+other:
+  forgerynet: {videos: 1241, no face: 330, one person: 847, two or more: 64, second person in half the detections: 32}
+  openforensics: {annotated: 15345, found: 13733, auc: 0.4464}
+  still_frame: {clips: 300, auc: 0.6661}
+  dedup:
+    without_copies_in_hidf_train: {auc: 0.9004, real: 101, interval: [0.8684, 0.9280]}
+    without_all_copies: {auc: 0.8748, real: 44, interval: [0.8170, 0.9228]}
+  partner_elsewhere_share: {hidf: 0.92, celebdfv2: 0.83, fakeavceleb: 0.81, polyglotfake: 0.79, ffpp: 0.85}
+  multi_person:
+    tiled: {sides: 240, clips: 172, video_auc: 0.9165, real_real: [2, 20], face_auc: 0.9101, faces: [100, 140]}
+    conversation: {sides: 80, clips: 70, video_auc: 0.9531, real_real: [2, 8], face_auc: 0.9759, faces: [32, 48], two_speakers: 38, turn_end_median: 4.5}
+  filtered: {share: [0.20, 0.28], f1: 0.0056, auc: 0.0049}
+  size: {videomae_m: 86.2, whisper_m: 305.7, classifier_m: 7.08, videomae_gflop: 270, whisper_gflop: 917}
