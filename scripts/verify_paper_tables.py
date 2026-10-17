@@ -188,6 +188,44 @@ def multi_person_sets(report: Report, expected: dict) -> None:
         report.check(f"{key} real faces", len(real_p), expected[key]["faces"][1])
 
 
+def text_gate_vs_static(report: Report, paper: dict) -> None:
+    """Tabel VII and the sentences around it: the gated model against the static one per dataset (results/analyses/gate_vs_static, written by
+    analyze_gate_vs_static.py), the branch-alone runs, the muted-audio test and the review-set comparison."""
+    expected = paper["gate_vs_static"]
+    folder = ROOT / "results" / "analyses" / "gate_vs_static"
+    pooled = pd.read_csv(folder / "per_dataset.csv").set_index("group")
+    for key, row in expected["pooled"].items():
+        group = pooled.loc["all videos" if key == "all" else key]
+        for name, got in (("auc diff", group.auc_diff), ("auc low", group.auc_low), ("auc high", group.auc_high), ("f1 diff", group.f1_diff)):
+            report.check(f"{key} pooled {name}", float(got), row[name])
+        report.check(f"{key} gate right only", int(group.gate_right_only), row["only"][0])
+        report.check(f"{key} static right only", int(group.static_right_only), row["only"][1])
+        report.check(f"{key} mcnemar p", float(group.mcnemar_p), row["p"], places=3)
+    seeds = pd.read_csv(folder / "per_seed.csv")
+    audio = seeds[seeds.group.isin(["hidf", "fakeavceleb", "polyglotfake"])]
+    report.check("audio dataset and seed pairs with a higher gated AUC", int((audio.auc_gate > audio.auc_static).sum()), expected["pairs"]["auc_higher"])
+    report.check("audio dataset and seed pairs with a higher gated F1", int((audio.f1_gate.round(4) > audio.f1_static.round(4)).sum()), expected["pairs"]["f1_higher"])
+    report.check("audio dataset and seed pairs with an equal F1", int((audio.f1_gate.round(4) == audio.f1_static.round(4)).sum()), expected["pairs"]["f1_equal"])
+    names = {"gate": "moe_combined_retrain", "visual": "visual_branch_alone", "audio_visual": "audio_visual_branch_alone", "static": "concat_combined_retrain"}
+    for dataset, row in expected["branches"].items():
+        for model, (auc, f1) in row.items():
+            frame = seed42(names[model])
+            got = scores(frame[frame.dataset == dataset])
+            report.check(f"{dataset} {model} auc", got["auc"], auc)
+            report.check(f"{dataset} {model} f1", got["f1"], f1, alternative=got["f1_strict"])
+    muted = {}
+    for model, folder_name in (("gate", "expert_tests_moe_combined_retrain"), ("static", "expert_tests_concat_combined_retrain")):
+        scope = yaml.safe_load((ROOT / "results" / "metrics" / folder_name / "metrics.yaml").read_text(encoding="utf-8"))["scopes"]["datasets with audio"]
+        muted[model] = (scope["baseline"]["f1_macro"], scope["audio_zeroed"]["f1_macro"])
+        report.check(f"{model} F1 with the audio muted, datasets with audio", muted[model][1], expected["muted"][f"{model}_after"])
+        report.check(f"{model} F1 drop with the audio muted, datasets with audio", muted[model][0] - muted[model][1], expected["muted"][f"{model}_drop"], places=3)
+    triage = pd.read_csv(folder / "triage.csv")
+    for column, name in (("review_share", "review share"), ("share_of_gate_errors_in_alpha_set", "gate errors in the alpha set"),
+                         ("share_of_static_errors_in_least_confident_static", "static errors in the least confident")):
+        report.check(f"{name} lowest, percent", float(triage[column].min() * 100), expected["triage"][column][0], places=0)
+        report.check(f"{name} highest, percent", float(triage[column].max() * 100), expected["triage"][column][1], places=0)
+
+
 def text_other_checks(report: Report, paper: dict) -> None:
     """Counts and scores of the Hasil text outside the tables: face tracking, image control, overlap, deduplicated leave-one-out, size."""
     expected = paper["other"]
@@ -244,13 +282,13 @@ def text_other_checks(report: Report, paper: dict) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--only", choices=["in_distribution", "leave_one_out", "two_people", "calibration", "ablation", "per_dataset", "alpha", "other"], nargs="*")
+    parser.add_argument("--only", choices=["in_distribution", "leave_one_out", "two_people", "calibration", "ablation", "per_dataset", "alpha", "other", "gate_vs_static"], nargs="*")
     args = parser.parse_args()
     paper = yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
     report = Report()
     steps = {"in_distribution": tabel_in_distribution, "leave_one_out": tabel_leave_one_out,
              "two_people": tabel_two_people, "calibration": tabel_calibration,
-             "ablation": text_ablation, "per_dataset": text_per_dataset, "alpha": text_alpha, "other": text_other_checks}
+             "ablation": text_ablation, "per_dataset": text_per_dataset, "alpha": text_alpha, "other": text_other_checks, "gate_vs_static": text_gate_vs_static}
     for name, step in steps.items():
         if not args.only or name in args.only:
             step(report, paper)

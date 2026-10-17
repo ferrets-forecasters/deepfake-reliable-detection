@@ -45,7 +45,6 @@ ablation_seed42:
 # gate f1, gate auc, static f1, static auc
 per_dataset_seed42:
   fakeavceleb: [0.9335, 0.9880, 0.8127, 0.9850]
-  celebdfv2:   [0.7488, 0.8996, 0.7776, 0.9142]
 gate_minus_video_only_f1_seed42: {polyglotfake: 0.103, fakeavceleb: 0.163, hidf: 0.026}
 
 alpha_seed42:
@@ -77,3 +76,21 @@ other:
 
 # Tabel VI column "α Gabungan": mean alpha per dataset of the model trained on all five datasets, seed 42, all test videos
 combined_alpha_seed42: {polyglotfake: 0.174, hidf: 0.456, fakeavceleb: 0.174, celebdfv2: 1.000, ffpp: 1.000}
+
+# Tabel VII and the sentences around it (pooled five folds, 1.000 paired bootstrap resamples)
+gate_vs_static:
+  pooled:
+    hidf:         {auc diff: 0.0044, auc low: 0.0021, auc high: 0.0067, f1 diff: 0.0059, only: [252, 201], p: 0.019}
+    fakeavceleb:  {auc diff: 0.0066, auc low: 0.0016, auc high: 0.0141, f1 diff: 0.0140, only: [68, 51], p: 0.142}
+    polyglotfake: {auc diff: 0.0015, auc low: 0.0004, auc high: 0.0036, f1 diff: 0.0043, only: [39, 25], p: 0.103}
+    celebdfv2:    {auc diff: -0.0055, auc low: -0.0149, auc high: 0.0050, f1 diff: -0.0069, only: [176, 194], p: 0.377}
+    ffpp:         {auc diff: 0.0007, auc low: -0.0075, auc high: 0.0085, f1 diff: -0.0081, only: [101, 126], p: 0.111}
+    all:          {auc diff: -0.0014, auc low: -0.0035, auc high: 0.0007, f1 diff: 0.0017, only: [636, 597], p: 0.279}
+  pairs: {auc_higher: 9, f1_higher: 8, f1_equal: 1}
+  # AUC and F1 at 0.5 on the seed-42 test split
+  branches:
+    hidf:        {gate: [0.9717, 0.9139], visual: [0.9698, 0.8924], audio_visual: [0.9677, 0.9064]}
+    fakeavceleb: {gate: [0.9880, 0.9335], visual: [0.9414, 0.6849], audio_visual: [0.9783, 0.8235], static: [0.9850, 0.8127]}
+  muted: {gate_after: 0.9274, gate_drop: 0.027, static_after: 0.8930, static_drop: 0.038}
+  # lowest and highest over the three seeds, percent
+  triage: {review_share: [33, 38], share_of_gate_errors_in_alpha_set: [85, 88], share_of_static_errors_in_least_confident_static: [89, 97]}
