@@ -71,6 +71,7 @@ other:
   multi_person:
     tiled: {sides: 240, clips: 172, video_auc: 0.9165, real_real: [2, 20], face_auc: 0.9101, faces: [100, 140]}
     conversation: {sides: 80, clips: 70, video_auc: 0.9531, real_real: [2, 8], face_auc: 0.9759, faces: [32, 48], two_speakers: 38, turn_end_median: 4.5}
+  alpha_prediction: {fakeavceleb: [0.431, 0.465], hidf: [0.188, 0.183], polyglotfake: [0.389, 0.350]}
   filtered: {share: [0.20, 0.28], f1: 0.0056, auc: 0.0049}
   size: {videomae_m: 86.2, whisper_m: 305.7, classifier_m: 7.08, videomae_gflop: 270, whisper_gflop: 917}
 

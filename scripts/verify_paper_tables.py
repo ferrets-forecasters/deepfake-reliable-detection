@@ -218,6 +218,10 @@ def text_other_checks(report: Report, paper: dict) -> None:
         elsewhere, same = parts["test / partner in another partition"], parts["test / same partition"]
         report.check(f"{dataset} test fakes whose real video sits in another split", elsewhere / (elsewhere + same), share, places=2)
     multi_person_sets(report, expected["multi_person"])
+    prediction = pd.read_csv(ROOT / "results" / "analyses" / "gate_branch_scores" / "held_out_alpha_prediction.csv").set_index("held_out")
+    for dataset, (predicted, observed) in expected["alpha_prediction"].items():
+        report.check(f"{dataset} alpha predicted from the nearest seen datasets", float(prediction.loc[dataset, "predicted_alpha"]), predicted, places=3)
+        report.check(f"{dataset} alpha observed in leave-one-out", float(prediction.loc[dataset, "observed_alpha"]), observed, places=3)
     largest_f1 = largest_auc = 0.0
     shares = []
     for seed in SEEDS:
