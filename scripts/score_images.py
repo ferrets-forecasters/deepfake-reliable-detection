@@ -8,16 +8,14 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-import yaml
 from sklearn.metrics import average_precision_score, f1_score, roc_auc_score
 from tqdm import tqdm
 
 from deepfake_detection.config import load_config
-from deepfake_detection.config.config import REPO_ROOT, _project_root
 from deepfake_detection.data.face_crop import FaceLandmarkDetector
 from deepfake_detection.data.segment_embedding import VIDEOMAE_FRAMES, SegmentEmbedder
 from deepfake_detection.evaluation.checkpoint_scoring import CheckpointScorer
-from deepfake_detection.reference import load_reference_repo
+from deepfake_detection.reference import load_reference
 
 COLUMNS = ["image", "annotation_id", "label", "matched", "p_fake", "alpha", "iou"]
 
@@ -61,7 +59,6 @@ def summarize(faces_csv: Path, threshold: float) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Per-face verdicts on a multi-face image set in COCO format (OpenForensics): the detector finds faces, each is matched to an annotated face, and the visual expert scores a static clip made of the crop.")
     parser.add_argument("--config", default=None)
-    parser.add_argument("--reproduction", default=str(REPO_ROOT / "configs" / "reproduction.yaml"))
     parser.add_argument("--model", default="moe_combined")
     parser.add_argument("--dataset", default="openforensics")
     parser.add_argument("--split", default="Val")
@@ -95,8 +92,7 @@ def main() -> None:
         with open(faces_csv, "w", newline="", encoding="utf-8") as f:
             csv.DictWriter(f, fieldnames=COLUMNS).writeheader()
 
-    repro = yaml.safe_load(Path(args.reproduction).read_text(encoding="utf-8"))
-    scorer = CheckpointScorer(load_reference_repo(_project_root() / repro["reference_repo"]), config.paths.checkpoints_dir(args.model))
+    scorer = CheckpointScorer(load_reference(), config.paths.checkpoints_dir(args.model))
     embedder = SegmentEmbedder()
     detector = FaceLandmarkDetector(max_faces=args.max_faces, margin=0.25)
 

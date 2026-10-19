@@ -10,29 +10,26 @@ import yaml
 
 from deepfake_detection.config import load_config
 from deepfake_detection.config.config import REPO_ROOT, _project_root
-from deepfake_detection.reference import load_reference_repo
+from deepfake_detection.reference import load_reference
 from deepfake_detection.training.cv_splits import load_kfold_splits
 from deepfake_detection.training.fixed_gate import freeze_gate_at
 from deepfake_detection.training.reference_training import load_reference_training, train_resumable
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train one model with the old repo's training code on the saved embeddings, resumable after every epoch. Output goes to models/<name>/.")
-    parser.add_argument("config", help="a YAML under the old repo's src/experiments/configs, or a path")
+    parser = argparse.ArgumentParser(description="Train one model with the reference training code on the saved embeddings, resumable after every epoch. Output goes to models/<name>/.")
+    parser.add_argument("config", help="a YAML name under configs/training, or a path")
     parser.add_argument("--name", required=True, help="output folder name under models/")
     parser.add_argument("--override", nargs="*", default=[], metavar="key.sub=value")
     parser.add_argument("--project-config", default=None)
-    parser.add_argument("--reproduction", default=str(REPO_ROOT / "configs" / "reproduction.yaml"))
     args = parser.parse_args()
 
     config = load_config(args.project_config)
-    repro = yaml.safe_load(Path(args.reproduction).read_text(encoding="utf-8"))
-    root = _project_root() / repro["reference_repo"]
-    run_module, _ = load_reference_training(root, config, _project_root() / "temp" / "training_cache")
+    run_module, _ = load_reference_training(config, _project_root() / "temp" / "training_cache")
 
     config_path = Path(args.config)
     if not config_path.exists():
-        config_path = root / "src" / "experiments" / "configs" / config_path.name
+        config_path = REPO_ROOT / "configs" / "training" / config_path.name
     cfg = run_module.apply_overrides(run_module.load_yaml(config_path), args.override)
     save_dir = config.paths.checkpoints_dir(args.name)
     if (save_dir / "results.yaml").exists():
@@ -45,7 +42,7 @@ def main() -> None:
         freeze_gate_at(model, float(cfg["data"]["fixed_gate_alpha"]))
     if cfg["data"].get("experiment") == "all_datasets_kfold":
         data = cfg["data"]
-        train, val, test, domain_labels, norm_overrides = load_kfold_splits(load_reference_repo(root), config, int(data["fold"]), int(data.get("folds", 5)), seed)
+        train, val, test, domain_labels, norm_overrides = load_kfold_splits(load_reference(), config, int(data["fold"]), int(data.get("folds", 5)), seed)
         print(f"fold {data['fold']}: train {len(train)} val {len(val)} test {len(test)} videos", flush=True)
     else:
         train, val, test, domain_labels, norm_overrides = run_module.load_splits(cfg["data"], cfg.get("performance", {}))

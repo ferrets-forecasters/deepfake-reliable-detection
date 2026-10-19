@@ -14,12 +14,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 from remote_zip import DRIVE_URL, open_remote  # noqa: E402
 
 from deepfake_detection.config import load_config  # noqa: E402
+from deepfake_detection.data.drive_archives import load_drive_archives  # noqa: E402
 
 PREDICTIONS = "moe_combined_retrain_on_combined_test_seed42"
-ARCHIVES = {
-    "celebdfv2": ("1ycE03-UpDrrTKfem5FSewMNf5mtHL5Cw", "Celeb-DF-v2.zip"),
-    "ffpp": ("18M8bOxbPT_d6Zii7Ah2HAV7XgG0_piY_", "FaceForensics++ Dataset (C23).zip"),
-}
 FFPP_METHODS = ("deepfakes", "face2face", "faceshifter", "faceswap", "neuraltextures")
 
 
@@ -90,7 +87,7 @@ def main() -> None:
             if len(randoms) == args.random_pairs + 2:
                 break
         chosen = failures + randoms
-        file_id, _ = ARCHIVES[dataset]
+        file_id = load_drive_archives()[dataset][0][0]
         archive = open_remote(DRIVE_URL.format(id=file_id))
         raw = config.paths.datasets_root / dataset / "raw" / "test_pairs"
         pairs = []

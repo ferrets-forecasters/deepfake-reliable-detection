@@ -1,0 +1,41 @@
+name: comp_fakeavceleb_70_30_concat
+description: >
+  CAD-matched FakeAVCeleb 70/30 protocol. Deterministic subject split:
+  56% train, 14% validation, 30% test, seed=42.
+  Static Concatenation baseline. Full audio+video mode.
+group: comparison
+
+model:
+  type:       concat
+  backbone:   gru
+  hidden_dim: 256
+  num_layers: 2
+  dropout:    0.3
+
+data:
+  experiment: fakeavceleb_70_30
+  seed:       42
+
+training:
+  epochs:          60
+  batch_size:      16
+  lr:              1.0e-4
+  weight_decay:    1.0e-3
+  patience:        12
+  label_smoothing: 0.05
+  modal_drop_p:    0.25
+  feat_noise:      0.01
+  mixup_alpha:     0.2
+
+loss:
+  dann_lambda:             0.0
+  focal_gamma:             1.0
+  focal_alpha:             0.75
+  gate_supervision_weight: 0.0
+
+swa:
+  start: 0.75
+  lr:    5.0e-5
+
+debug:
+  sanity_fraction: null

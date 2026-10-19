@@ -4,14 +4,11 @@ import argparse
 import csv
 import random
 from collections import defaultdict
-from pathlib import Path
 
-import yaml
 
 from deepfake_detection.config import load_config
-from deepfake_detection.config.config import REPO_ROOT, _project_root
 from deepfake_detection.evaluation.reproduce import dataset_records
-from deepfake_detection.reference import load_reference_repo
+from deepfake_detection.reference import load_reference
 
 
 def assign_folds(records: list, folds: int, seed: int) -> dict[str, int]:
@@ -37,14 +34,12 @@ def assign_folds(records: list, folds: int, seed: int) -> dict[str, int]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Write the subject-level k-fold assignment of every dataset to datasets/<name>/labels/cv_folds_k<k>_seed<seed>.csv and print the size and class balance of each fold.")
     parser.add_argument("--config", default=None)
-    parser.add_argument("--reproduction", default=str(REPO_ROOT / "configs" / "reproduction.yaml"))
     parser.add_argument("--folds", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
     config = load_config(args.config)
-    repro = yaml.safe_load(Path(args.reproduction).read_text(encoding="utf-8"))
-    reference = load_reference_repo(_project_root() / repro["reference_repo"])
+    reference = load_reference()
 
     print("dataset | fold | subjects | videos | real videos | fake share")
     for name in config.dataset_names():

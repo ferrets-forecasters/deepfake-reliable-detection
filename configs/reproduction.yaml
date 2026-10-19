@@ -1,6 +1,5 @@
-# Re-score the exported checkpoints with the reference (old) repo's own code
+# Re-score the exported checkpoints with the reference code (deepfake_detection.reference)
 # and compare with the numbers each run stored in its results.yaml.
-reference_repo: repo/research-deepfake_classification   # relative to the project root, read-only
 split:
   val_ratio: 0.2
   seed: 42

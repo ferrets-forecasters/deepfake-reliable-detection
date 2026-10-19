@@ -14,17 +14,10 @@ import gdown
 from tqdm import tqdm
 
 from deepfake_detection.config import load_config
+from deepfake_detection.data.drive_archives import load_drive_archives
 
 # Own split: the combined test split of the retrained gated model (seed 42, 20% of the subjects of every dataset).
 OWN_PREDICTIONS = "moe_combined_retrain_on_combined_test_seed42"
-# Drive file ids in the shared folder 1UZ61KBsorHL0WdaLaCklDEG2-B17oenl, smallest first.
-ARCHIVES = {
-    "hidf": [("1mB1NHKuJiBjgyW9OqnxcnlqJ85qCrIaa", "Real-vid.zip"), ("1UTfL7rvWwR9-__oHolDnxbWKsBXFBut1", "Fake-vid.zip")],
-    "fakeavceleb": [("1LlDGdHKx3LVs2gJaY_7qAsLPwW3bPyv8", "FAKEAVCELEB.zip")],
-    "celebdfv2": [("1ycE03-UpDrrTKfem5FSewMNf5mtHL5Cw", "Celeb-DF-v2.zip")],
-    "ffpp": [("18M8bOxbPT_d6Zii7Ah2HAV7XgG0_piY_", "FaceForensics++ Dataset (C23).zip")],
-    "polyglotfake": [("1xH5DTDHghOsP3R8pQLUuSz_MfKY60yc5", "PolyGlotFake.rar")],
-}
 ATTEMPTS = 6
 FFPP_METHODS = ("deepfakes", "face2face", "faceshifter", "faceswap", "neuraltextures", "deepfakedetection")
 VIDEO_SUFFIXES = {".mp4", ".avi", ".mov", ".mkv"}
@@ -135,12 +128,14 @@ def extract(archive: Path, members: list[str], target: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Per dataset: download its archives from the shared Drive, extract the videos of the own test split and of the official test split into datasets/<name>/raw/test_split/, write labels/test_split.csv, then delete the archives. Run with `uv run --with gdown python scripts/fetch_test_videos.py`. A dataset with a finished test_split.csv is skipped.")
     parser.add_argument("--config", default=None)
-    parser.add_argument("--datasets", nargs="*", default=list(ARCHIVES))
+    parser.add_argument("--datasets", nargs="*", default=None)
     parser.add_argument("--keep-archives", action="store_true")
     parser.add_argument("--annotate-only", action="store_true", help="add the stem_candidates column to the finished test_split.csv files and stop")
     args = parser.parse_args()
 
     config = load_config(args.config)
+    archives = load_drive_archives()
+    args.datasets = args.datasets or list(archives)
     if args.annotate_only:
         for dataset in args.datasets:
             table = config.paths.datasets_root / dataset / "labels" / "test_split.csv"
@@ -164,7 +159,7 @@ def main() -> None:
         wanted = own.get(dataset, {})
         rows: dict[str, dict] = {}
         matched = set()
-        for file_id, name in ARCHIVES[dataset]:
+        for file_id, name, _ in archives[dataset]:
             archive = raw / name
             if not archive.exists() and not download(dataset, file_id, archive):
                 break
@@ -200,7 +195,7 @@ def main() -> None:
             if missing:
                 (table.parent / "test_split_not_found.txt").write_text("\n".join(missing), encoding="utf-8")
             if not args.keep_archives:
-                for _, name in ARCHIVES[dataset]:
+                for _, name, _ in archives[dataset]:
                     (raw / name).unlink(missing_ok=True)
             continue
         print(f"{dataset}: archive not available now, skipped", flush=True)

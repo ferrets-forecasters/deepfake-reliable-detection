@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 
 import torch
 import yaml
 from torch.utils.flop_counter import FlopCounterMode
 
 from deepfake_detection.config import load_config
-from deepfake_detection.config.config import REPO_ROOT, _project_root
 from deepfake_detection.encoders.videomae_weights import load_videomae
-from deepfake_detection.reference import load_reference_repo
+from deepfake_detection.reference import load_reference
 
 SEGMENT_FRAMES, SEGMENT_SIZE, WHISPER_MELS, WHISPER_STEPS = 16, 224, 80, 3000
 
@@ -28,14 +26,12 @@ def gflops(fn) -> float:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Parameters, checkpoint size and floating point operations of each component, counted on CPU. Matrix multiplications and convolutions are counted; element-wise operations are not.")
     parser.add_argument("--config", default=None)
-    parser.add_argument("--reproduction", default=str(REPO_ROOT / "configs" / "reproduction.yaml"))
     parser.add_argument("--models", nargs="+", default=["moe_combined", "concat_combined"])
     parser.add_argument("--segments", type=int, default=60, help="sequence length for the classifier FLOPs")
     args = parser.parse_args()
 
     config = load_config(args.config)
-    repro = yaml.safe_load(Path(args.reproduction).read_text(encoding="utf-8"))
-    reference = load_reference_repo(_project_root() / repro["reference_repo"])
+    reference = load_reference()
     report: dict = {}
 
     videomae = load_videomae("MCG-NJU/videomae-base").eval()

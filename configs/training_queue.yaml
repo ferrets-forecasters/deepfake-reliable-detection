@@ -1,4 +1,4 @@
-# Training runs of 2026-10-11, in the order they run. Each entry: output folder under models/, the old repo's config, overrides.
+# Training runs of 2026-10-11, in the order they run. Each entry: output folder under models/, the file name under configs/training, overrides.
 # Every run resumes after its last finished epoch, and a run with a results.yaml is skipped.
 common_overrides: [performance.num_workers=0]
 runs:
@@ -22,12 +22,12 @@ runs:
   - {name: concat_cv_fold3, config: concat.yaml, overrides: [data.experiment=all_datasets_kfold, data.fold=3]}
   - {name: moe_cv_fold4, config: moe_fusion.yaml, overrides: [data.experiment=all_datasets_kfold, data.fold=4]}
   - {name: concat_cv_fold4, config: concat.yaml, overrides: [data.experiment=all_datasets_kfold, data.fold=4]}
-  # Leave-one-out re-runs (train on four datasets, test on the whole fifth): the paper's Tabel V now rests on the May runs
+  # Leave-one-out re-runs (train on four datasets, test on the whole fifth)
   - {name: moe_leave_polyglotfake_retrain, config: lodo_leave_polyglot.yaml, overrides: []}
   - {name: moe_leave_hidf_retrain, config: lodo_leave_hidf.yaml, overrides: []}
   - {name: moe_leave_fakeavceleb_retrain, config: lodo_leave_fakeavceleb.yaml, overrides: []}
   - {name: moe_leave_celebdfv2_retrain, config: lodo_leave_celebdfv2.yaml, overrides: []}
   - {name: moe_leave_ffpp_retrain, config: lodo_leave_ffpp.yaml, overrides: []}
-  # One branch alone, same split and settings (the paper's "Audio-only" and "Video-only" rows)
+  # One branch alone, same split and settings (audio-visual branch alone and visual branch alone)
   - {name: audio_visual_branch_alone, config: audio_only.yaml, overrides: []}
   - {name: visual_branch_alone, config: video_only.yaml, overrides: []}

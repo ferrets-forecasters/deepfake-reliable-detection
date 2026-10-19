@@ -4,7 +4,6 @@ import argparse
 import csv
 import random
 import subprocess
-import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -16,9 +15,9 @@ from tqdm import tqdm
 
 from deepfake_detection.config import load_config  # noqa: E402
 from deepfake_detection.inference.factory import build_pipeline  # noqa: E402
+from deepfake_detection.utils.tools import find_tool  # noqa: E402
 from deepfake_detection.utils.watchdog import hang_watchdog  # noqa: E402
 
-FFMPEG = Path(r"C:\tools\ffmpeg\bin\ffmpeg.exe")
 ORIGINAL = "original"
 BACKENDS = ("paper_model",)
 COLUMNS = ["video_id", "dataset", "label", "condition", "p_fake", "units", "seconds", "error"]
@@ -54,7 +53,7 @@ def select_videos(config, datasets: list[str], per_class: int, seed: int) -> lis
 def encode(source: Path, target: Path, crf: int) -> None:
     """H.264 at `crf`, same resolution, audio stream copied; falls back to AAC when the source audio cannot go into mp4 as is."""
     part = target.with_suffix(".part.mp4")
-    base = [str(FFMPEG), "-y", "-loglevel", "error", "-i", str(source), "-c:v", "libx264", "-crf", str(crf), "-preset", "medium", "-pix_fmt", "yuv420p"]
+    base = [str(find_tool("ffmpeg")), "-y", "-loglevel", "error", "-i", str(source), "-c:v", "libx264", "-crf", str(crf), "-preset", "medium", "-pix_fmt", "yuv420p"]
     try:
         subprocess.run(base + ["-c:a", "copy", str(part)], check=True)
     except subprocess.CalledProcessError:
@@ -236,7 +235,7 @@ def main() -> None:
     parser.add_argument("--bootstrap", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--summary-only", action="store_true", help="skip scoring and summarize the predictions that exist")
-    parser.add_argument("--manifest", type=Path, default=None, help="score the clips of this manifest (written by this script or by pack_sweep_subset.py) instead of selecting and encoding videos")
+    parser.add_argument("--manifest", type=Path, default=None, help="score the clips of this manifest (columns video_id, dataset, label, condition, path, bytes) instead of selecting and encoding videos")
     args = parser.parse_args()
 
     config = load_config(args.config)

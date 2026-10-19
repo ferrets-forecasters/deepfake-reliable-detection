@@ -13,12 +13,11 @@ import yaml
 from tqdm import tqdm
 
 from deepfake_detection.config import load_config
-from deepfake_detection.config.config import REPO_ROOT, _project_root
 from deepfake_detection.data.face_crop import MultiFaceTracker
 from deepfake_detection.data.segment_embedding import SegmentEmbedder
 from deepfake_detection.evaluation.checkpoint_scoring import CheckpointScorer
 from deepfake_detection.inference import MultiSubjectInference, SingleSpeaker
-from deepfake_detection.reference import load_reference_repo
+from deepfake_detection.reference import load_reference
 from deepfake_detection.utils.watchdog import hang_watchdog
 
 STAGES = ["detect_track", "diarize", "audio_embed", "video_embed", "score"]
@@ -86,8 +85,7 @@ def pairs(config, count: int, seed: int) -> list[dict]:
 
 
 def build_pipeline(args, config, diarizer_name: str, timer: Timer) -> MultiSubjectInference:
-    repro = yaml.safe_load(Path(args.reproduction).read_text(encoding="utf-8"))
-    reference = load_reference_repo(_project_root() / repro["reference_repo"])
+    reference = load_reference()
     tracker = MultiFaceTracker(config.preprocessing.video.face_detector_fps, max_faces=args.max_faces)
     embedder, scorer = SegmentEmbedder(), CheckpointScorer(reference, config.paths.checkpoints_dir(args.model))
     if diarizer_name == "ecapa":
@@ -131,7 +129,6 @@ def summarize(rows: list[dict]) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Cost of an extra face: the full multi-person pipeline on a one-face clip and on the two-face tiled video that contains it, timed per stage on an idle GPU. Resumable, one row per run in timings.csv.")
     parser.add_argument("--config", default=None)
-    parser.add_argument("--reproduction", default=str(REPO_ROOT / "configs" / "reproduction.yaml"))
     parser.add_argument("--model", default="moe_combined_retrain")
     parser.add_argument("--clips", type=int, default=12, help="tiled videos, each timed once with two faces and once with one")
     parser.add_argument("--diarizers", nargs="+", default=["single", "ecapa"], choices=["single", "ecapa"])

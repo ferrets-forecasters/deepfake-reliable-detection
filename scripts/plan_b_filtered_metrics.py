@@ -10,10 +10,10 @@ import yaml
 from sklearn.metrics import average_precision_score, f1_score, roc_auc_score
 
 from deepfake_detection.config import load_config
-from deepfake_detection.config.config import REPO_ROOT, _project_root
+from deepfake_detection.config.config import REPO_ROOT
 from deepfake_detection.data.partners import partner_keys
 from deepfake_detection.evaluation.reproduce import dataset_records
-from deepfake_detection.reference import load_reference_repo
+from deepfake_detection.reference import load_reference
 
 RUNS = {42: ("moe_combined_retrain", "concat_combined_retrain"), 43: ("moe_combined_seed43", "concat_combined_seed43"), 44: ("moe_combined_seed44", "concat_combined_seed44")}
 
@@ -69,7 +69,7 @@ def main() -> None:
 
     config = load_config(args.config)
     repro = yaml.safe_load(Path(args.reproduction).read_text(encoding="utf-8"))
-    reference = load_reference_repo(_project_root() / repro["reference_repo"])
+    reference = load_reference()
     audit = config.paths.analysis_dir("split_leakage_audit")
 
     subject_part: dict[tuple[str, str], str] = {}

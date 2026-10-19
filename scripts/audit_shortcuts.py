@@ -48,7 +48,7 @@ def bootstrap_gap(y, a, b, fn, resamples=1000) -> list[float]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Shortcut checks on the saved test predictions of the combined split: clip length (R1), what the gate weight identifies (R2) and where the audio helps (R3). Reads predictions, manifests and audio embedding norms only.")
+    parser = argparse.ArgumentParser(description="Shortcut checks on the saved test predictions of the combined split: clip length, what the gate weight identifies and where the audio helps. Reads predictions, manifests and audio embedding norms only.")
     parser.add_argument("--config", default=None)
     args = parser.parse_args()
     config = load_config(args.config)

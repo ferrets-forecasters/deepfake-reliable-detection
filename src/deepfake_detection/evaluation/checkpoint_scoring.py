@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import yaml
 
-from deepfake_detection.reference import ReferenceRepo
+from deepfake_detection.reference import Reference
 
 VIDEO_DIM = 768
 AUDIO_DIM = 1024
@@ -17,7 +17,7 @@ class CheckpointScorer:
     checkpoint. Returns P(fake) and, for the gated model, the gate alpha. The same model
     can also be called with gradients on (fake_margin), for the explanation code."""
 
-    def __init__(self, reference: ReferenceRepo, model_dir: Path):
+    def __init__(self, reference: Reference, model_dir: Path):
         meta = yaml.safe_load((model_dir / "results.yaml").read_text(encoding="utf-8"))
         self.device = reference.device
         self.model = reference.build_model(meta["model"]).to(self.device)

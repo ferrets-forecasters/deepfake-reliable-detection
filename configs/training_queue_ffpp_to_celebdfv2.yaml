@@ -1,4 +1,4 @@
-# Conditional runs (TODO-experiment.md): FF++ official IDs (000-719 train) to the whole CelebDFv2, four and five manipulation types.
+# FF++ official IDs (000-719 train) to the whole CelebDFv2, four and five manipulation types.
 # Run with: uv run python scripts/train_queue.py --queue configs/training_queue_ffpp_to_celebdfv2.yaml --max-active 3
 common_overrides: [performance.num_workers=0]
 runs:

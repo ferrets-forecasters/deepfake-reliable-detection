@@ -2,20 +2,17 @@ from __future__ import annotations
 
 import argparse
 import random
-from pathlib import Path
 
 import numpy as np
-import yaml
 from sklearn.metrics import average_precision_score, roc_auc_score
 
 from deepfake_detection.config import load_config
-from deepfake_detection.config.config import REPO_ROOT, _project_root
 from deepfake_detection.data.face_crop import MultiFaceTracker
 from deepfake_detection.data.segment_embedding import SegmentEmbedder
 from deepfake_detection.data.tiling import index_clips
 from deepfake_detection.evaluation.checkpoint_scoring import CheckpointScorer
 from deepfake_detection.inference import MultiSubjectInference
-from deepfake_detection.reference import load_reference_repo
+from deepfake_detection.reference import load_reference
 from deepfake_detection.utils.progress import ResumableCsv, progress
 
 KINDS = {"real": "real video, real audio", "fake_av": "fake video, fake audio", "fake_v": "fake video, real audio", "fake_a": "real video, fake audio"}
@@ -61,7 +58,6 @@ def summarize(rows: list[dict], models: list[str]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Score FakeAVCeleb clips by manipulation category (which modality was faked) with several checkpoints. Resumable: finished clips are kept in clips.csv and progress goes to progress.log.")
     parser.add_argument("--config", default=None)
-    parser.add_argument("--reproduction", default=str(REPO_ROOT / "configs" / "reproduction.yaml"))
     parser.add_argument("--models", nargs="+", default=["moe_leave_fakeavceleb", "moe_combined"])
     parser.add_argument("--name", default="fakeavceleb_categories", help="folder under results/inferences/ that holds clips.csv")
     parser.add_argument("--per-kind", type=int, default=100)
@@ -76,8 +72,7 @@ def main() -> None:
         summarize(state.rows, args.models)
         return
 
-    repro = yaml.safe_load(Path(args.reproduction).read_text(encoding="utf-8"))
-    reference = load_reference_repo(_project_root() / repro["reference_repo"])
+    reference = load_reference()
     scorers = SeveralScorers({name: CheckpointScorer(reference, config.paths.checkpoints_dir(name)) for name in args.models})
     pipeline = MultiSubjectInference(tracker=MultiFaceTracker(config.preprocessing.video.face_detector_fps, max_faces=1), embedder=SegmentEmbedder(), scorer=scorers)
 

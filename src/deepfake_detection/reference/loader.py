@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import sys
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Callable
 
 
 @dataclass
-class ReferenceRepo:
+class Reference:
     scan: Callable
     subject_split: Callable
     subject_extractors: dict[str, Callable]
@@ -18,18 +16,16 @@ class ReferenceRepo:
     device: Any
 
 
-def load_reference_repo(root: Path) -> ReferenceRepo:
-    """Import the old research repo's modules without changing it. Its modules expect both the repo root and its src folder on sys.path."""
-    for path in (root / "src", root):
-        sys.path.insert(0, str(path))
-    from src.data import dataset
-    from src.models.factory import build_model
-    from src.training.engine import run_epoch
-    from src.training.losses import FocalLoss
-    from src.training.trainer import _make_loader
-    from configs.config import DEVICE
+def load_reference() -> Reference:
+    """The data, model and training code that produced the paper's checkpoints. Imported on first use, after the dataset roots of reference.config are set."""
+    from deepfake_detection.reference.config import DEVICE
+    from deepfake_detection.reference.data import dataset
+    from deepfake_detection.reference.models.factory import build_model
+    from deepfake_detection.reference.training.engine import run_epoch
+    from deepfake_detection.reference.training.losses import FocalLoss
+    from deepfake_detection.reference.training.trainer import _make_loader
 
-    return ReferenceRepo(
+    return Reference(
         scan=dataset.scan,
         subject_split=dataset.subject_split,
         subject_extractors={

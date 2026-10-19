@@ -1,3 +1,3 @@
-from .old_repo import ReferenceRepo, load_reference_repo
+from .loader import Reference, load_reference
 
-__all__ = ["ReferenceRepo", "load_reference_repo"]
+__all__ = ["Reference", "load_reference"]

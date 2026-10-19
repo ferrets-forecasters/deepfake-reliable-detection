@@ -1,4 +1,4 @@
-"""Leave-one-out FakeAVCeleb scored without the real videos that HiDF holds a copy of (audit D1).
+"""Leave-one-out FakeAVCeleb scored without the real videos that HiDF holds a copy of.
 
 HiDF is in the training pool of that run, so a real FakeAVCeleb test video with an identical copy in HiDF was
 seen in training. The fake videos stay; only those reals are removed from the test, in four variants."""

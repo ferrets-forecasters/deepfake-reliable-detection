@@ -3,12 +3,12 @@ from __future__ import annotations
 import argparse
 import csv
 import subprocess
-from pathlib import Path
 
 from tqdm import tqdm
 
 from deepfake_detection.config import load_config
 from deepfake_detection.data.tiling import ffmpeg_reencode_command
+from deepfake_detection.utils.tools import find_tool
 
 
 def main() -> None:
@@ -18,7 +18,7 @@ def main() -> None:
     parser.add_argument("--name", default="fakeavceleb_reencoded")
     parser.add_argument("--per-kind", type=int, default=20)
     parser.add_argument("--height", type=int, default=360)
-    parser.add_argument("--ffmpeg", default=r"C:\tools\ffmpeg\bin\ffmpeg.exe")
+    parser.add_argument("--ffmpeg", default=None, help="ffmpeg executable; default: ffmpeg on PATH")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -41,7 +41,7 @@ def main() -> None:
         for number, clip in enumerate(tqdm(names, desc=kind)):
             out = out_root / "raw" / f"{kind}_{number:03d}.mp4"
             if not out.exists():
-                subprocess.run(ffmpeg_reencode_command(Path(args.ffmpeg), source_root / clip, out, args.height), check=True)
+                subprocess.run(ffmpeg_reencode_command(find_tool("ffmpeg", args.ffmpeg), source_root / clip, out, args.height), check=True)
             manifest.append({"sample_id": out.stem, "raw_path": str(out.relative_to(out_root)), "source_clip": clip, "kind": kind, "label": int(kind != "real")})
     with open(out_root / "labels" / "manifest.csv", "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=["sample_id", "raw_path", "source_clip", "kind", "label"])

@@ -6,7 +6,7 @@ import torch
 
 from deepfake_detection.config import Config
 from deepfake_detection.evaluation.reproduce import dataset_records
-from deepfake_detection.reference import ReferenceRepo
+from deepfake_detection.reference import Reference
 
 DATASET_ORDER = ["polyglotfake", "hidf", "fakeavceleb", "celebdfv2", "ffpp"]
 
@@ -17,10 +17,10 @@ def load_fold_assignment(config: Config, dataset: str, folds: int, seed: int) ->
         return {row["subject"]: int(row["fold"]) for row in csv.DictReader(f)}
 
 
-def load_kfold_splits(reference: ReferenceRepo, config: Config, fold: int, folds: int = 5, seed: int = 42):
-    """Train, validation and test records of one cross-validation fold, in the shape the old repo's
+def load_kfold_splits(reference: Reference, config: Config, fold: int, folds: int = 5, seed: int = 42):
+    """Train, validation and test records of one cross-validation fold, in the shape the reference
     trainer takes: fold `fold` is the test set, fold `fold + 1` the validation set and the remaining
-    folds train, taken per dataset. Domain labels follow the old combined run (PolyglotFake 0, HiDF 1,
+    folds train, taken per dataset. Domain labels follow the combined run (PolyglotFake 0, HiDF 1,
     FakeAVCeleb 2, CelebDFv2 3, FF++ 4)."""
     train, val, test, domain_ids = [], [], [], []
     for domain, name in enumerate(DATASET_ORDER):

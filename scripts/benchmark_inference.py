@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import statistics
 import time
-from pathlib import Path
 
 import cv2
 import numpy as np
@@ -11,13 +10,12 @@ import torch
 import yaml
 
 from deepfake_detection.config import load_config
-from deepfake_detection.config.config import REPO_ROOT, _project_root
 from deepfake_detection.data.audio_features import extract_audio_waveform
 from deepfake_detection.data.face_crop import FaceLandmarkDetector
 from deepfake_detection.data.segment_embedding import VIDEOMAE_FRAMES, WHISPER_SAMPLE_RATE, SegmentEmbedder
 from deepfake_detection.data.tiling import index_clips
 from deepfake_detection.evaluation.checkpoint_scoring import CheckpointScorer
-from deepfake_detection.reference import load_reference_repo
+from deepfake_detection.reference import load_reference
 
 SEGMENT_SECONDS = 2.0
 
@@ -40,7 +38,6 @@ def median_ms(fn, repeats: int, warmup: int = 5) -> float:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Time each stage of the pipeline per 2-second segment and the classifier at several sequence lengths, then the real-time factor of a clip of a given length.")
     parser.add_argument("--config", default=None)
-    parser.add_argument("--reproduction", default=str(REPO_ROOT / "configs" / "reproduction.yaml"))
     parser.add_argument("--models", nargs="+", default=["moe_combined", "concat_combined"])
     parser.add_argument("--repeats", type=int, default=30)
     parser.add_argument("--lengths", type=int, nargs="+", default=[1, 10, 30, 60])
@@ -48,8 +45,7 @@ def main() -> None:
     args = parser.parse_args()
 
     config = load_config(args.config)
-    repro = yaml.safe_load(Path(args.reproduction).read_text(encoding="utf-8"))
-    reference = load_reference_repo(_project_root() / repro["reference_repo"])
+    reference = load_reference()
     index = index_clips(config.raw_dir("fakeavceleb") / "FakeAVCeleb_v1.2")
     clip = next(iter(sorted(p for (kind, _, _), paths in index.items() if kind == "real" for p in paths)))
 

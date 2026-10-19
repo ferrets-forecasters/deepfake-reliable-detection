@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 from pathlib import Path
 
 import cv2
@@ -11,9 +10,9 @@ import yaml
 from tqdm import tqdm
 
 from deepfake_detection.config import load_config
-from deepfake_detection.config.config import REPO_ROOT, _project_root
+from deepfake_detection.config.config import REPO_ROOT
 from deepfake_detection.evaluation.reproduce import dataset_records
-from deepfake_detection.reference import load_reference_repo
+from deepfake_detection.reference import load_reference
 
 
 UNREADABLE: list[str] = []
@@ -54,7 +53,7 @@ def main() -> None:
 
     config = load_config(args.config)
     repro = yaml.safe_load(Path(args.reproduction).read_text(encoding="utf-8"))
-    reference = load_reference_repo(_project_root() / repro["reference_repo"])
+    reference = load_reference()
     seed = args.seed if args.seed is not None else repro["split"]["seed"]
 
     sides = {}

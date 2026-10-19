@@ -4,11 +4,11 @@ import re
 import subprocess
 from pathlib import Path
 
-FFMPEG = Path(r"C:\tools\ffmpeg\bin\ffmpeg.exe")
+from deepfake_detection.utils.tools import find_tool
 
 
-def list_devices_command(ffmpeg: Path = FFMPEG) -> list[str]:
-    return [str(ffmpeg), "-hide_banner", "-list_devices", "true", "-f", "dshow", "-i", "dummy"]
+def list_devices_command(ffmpeg: Path | None = None) -> list[str]:
+    return [str(ffmpeg or find_tool("ffmpeg")), "-hide_banner", "-list_devices", "true", "-f", "dshow", "-i", "dummy"]
 
 
 def parse_devices(ffmpeg_output: str) -> dict[str, list[str]]:
@@ -19,7 +19,7 @@ def parse_devices(ffmpeg_output: str) -> dict[str, list[str]]:
     return found
 
 
-def list_devices(ffmpeg: Path = FFMPEG) -> dict[str, list[str]]:
+def list_devices(ffmpeg: Path | None = None) -> dict[str, list[str]]:
     result = subprocess.run(list_devices_command(ffmpeg), capture_output=True)
     return parse_devices(decode_console(result.stderr + result.stdout))
 

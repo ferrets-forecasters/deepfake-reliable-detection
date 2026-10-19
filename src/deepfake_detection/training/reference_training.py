@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import csv
 import hashlib
-import importlib.util
+import importlib
 import json
 import os
 import random
-import sys
 import time
 from pathlib import Path
 
 import numpy as np
 import torch
-import torch.nn as nn
 from torch.optim.swa_utils import AveragedModel, SWALR
 
 from deepfake_detection.config import Config
@@ -22,30 +19,26 @@ DATASET_ROOTS = {"POLYGLOT_ROOT": "polyglotfake", "HIDF_ROOT": "hidf", "CELEBDFV
 feature_cache_dir: Path | None = None
 
 
-def load_reference_training(root: Path, config: Config, cache_dir: Path):
-    """Imports the old repo's training modules with the dataset roots pointed at this project's
-    embedding folders and the split and norm-stat caches inside this project. The old repo is not
-    changed. Returns its run module (config loading, model building, split scanning) and trainer module."""
+def load_reference_training(config: Config, cache_dir: Path):
+    """Imports the reference training modules with the dataset roots pointed at this project's
+    embedding folders and the split and norm-stat caches inside this project. Returns the run
+    module (config loading, model building, split scanning) and the trainer module."""
     global feature_cache_dir
     feature_cache_dir = cache_dir / "features"
-    for path in (root / "src", root):
-        sys.path.insert(0, str(path))
-    import configs.config as reference_config
+    import deepfake_detection.reference.config as reference_config
 
     for attribute, dataset in DATASET_ROOTS.items():
         setattr(reference_config, attribute, config.embedding_dir(dataset))
     reference_config.CACHE_DIR = cache_dir
-    spec = importlib.util.spec_from_file_location("reference_run", root / "src" / "experiments" / "run.py")
-    run_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(run_module)
-    import src.training.trainer as trainer_module
+    run_module = importlib.import_module("deepfake_detection.reference.run")
+    import deepfake_detection.reference.training.trainer as trainer_module
 
     trainer_module.compute_norm_stats = threaded_norm_stats
     return run_module, trainer_module
 
 
 def threaded_norm_stats(records, workers: int = 16) -> dict:
-    """The old repo's compute_norm_stats with the file reads spread over threads and the sums kept in
+    """The reference compute_norm_stats with the file reads spread over threads and the sums kept in
     float64: per-feature mean and std over every segment of the training records."""
     from concurrent.futures import ThreadPoolExecutor
 
@@ -190,7 +183,7 @@ def install_feature_cache(record_sets: list, workers: int = 16, cache_dir: Path 
     files again. With a cache folder the arrays are memory-mapped from one shared copy; without one, or when
     the shared copy cannot be built, each process holds its own float32 copy. Returns the number of files held.
     The training loop then reads memory instead of about 340 small files per batch."""
-    import src.data.dataset as dataset_module
+    import deepfake_detection.reference.data.dataset as dataset_module
 
     paths = sorted({str(f) for records in record_sets for row in records for f in row[0]})
     cache = None
@@ -215,13 +208,13 @@ def _save_state(path: Path, state: dict) -> None:
 
 
 def train_resumable(name, model, train_records, val_records, test_records, save_dir: Path, cfg: dict, domain_labels, norm_overrides, seed: int) -> dict:
-    """The old repo's run_experiment with one addition: the full training state (model, optimiser,
+    """The reference run_experiment with one addition: the full training state (model, optimiser,
     schedulers, scaler, SWA, best scores, patience) is written after every epoch, so a restarted
     run continues at the next epoch. Hyperparameters, losses, loaders and the final evaluation are
-    the old repo's own helpers. Per-epoch scores go to history.csv, progress with ETA to progress.log."""
-    import src.training.trainer as t
-    from src.training.engine import run_epoch
-    from src.training.losses import FocalLoss
+    the reference helpers. Per-epoch scores go to history.csv, progress with ETA to progress.log."""
+    import deepfake_detection.reference.training.trainer as t
+    from deepfake_detection.reference.training.engine import run_epoch
+    from deepfake_detection.reference.training.losses import FocalLoss
 
     random.seed(seed)
     np.random.seed(seed)

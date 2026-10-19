@@ -24,6 +24,12 @@ dependencies = [
     "speechbrain>=1.1.1",
 ]
 
+[project.optional-dependencies]
+download = ["gdown", "yt-dlp", "requests"]
+
+[dependency-groups]
+dev = ["pytest"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 

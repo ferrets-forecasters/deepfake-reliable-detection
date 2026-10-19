@@ -1,0 +1,43 @@
+﻿name: comp_ffpp_celebdfv2_concat
+description: >
+  FF++ official split (IDs 000-719, 4 types) → CelebDFv2 full test.
+  Static Concatenation baseline. Audio zeroed; no gate.
+  Ablation baseline for same cross-dataset comparison.
+group: comparison
+
+model:
+  type:       concat
+  backbone:   gru
+  hidden_dim: 256
+  num_layers: 2
+  dropout:    0.3
+
+data:
+  experiment: ffpp_official_to_celebdfv2
+  val_ratio:  0.20
+  seed:       42
+
+training:
+  epochs:          60
+  batch_size:      16
+  lr:              1.0e-4
+  weight_decay:    1.0e-3
+  patience:        12
+  label_smoothing: 0.05
+  modal_drop_p:    0.25
+  feat_noise:      0.01
+  mixup_alpha:     0.2
+
+loss:
+  dann_lambda:             0.0
+  focal_gamma:             1.0
+  focal_alpha:             0.75
+  gate_supervision_weight: 0.0   # concat model has no gate
+
+swa:
+  start: 0.75
+  lr:    5.0e-5
+
+debug:
+  sanity_fraction: null
+

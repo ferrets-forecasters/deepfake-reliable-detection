@@ -6,8 +6,8 @@ import subprocess
 from pathlib import Path
 
 from deepfake_detection.config import load_config
+from deepfake_detection.utils.tools import find_tool
 
-FFMPEG = Path(r"C:\tools\ffmpeg\bin\ffmpeg.exe")
 CASE_FIELDS = ["case_id", "title", "date", "platform", "source_url", "claim", "basis_url", "language", "license_note", "file", "note"]
 
 
@@ -32,7 +32,7 @@ def main() -> None:
         stem = f"{Path(t['file']).stem}_{int(start)}-{int(end)}"
         target = root / "raw" / f"{stem}.mp4"
         if not target.exists():
-            subprocess.run([str(FFMPEG), "-y", "-loglevel", "error", "-ss", str(start), "-to", str(end), "-i", str(root / "raw" / t["file"]),
+            subprocess.run([str(find_tool("ffmpeg")), "-y", "-loglevel", "error", "-ss", str(start), "-to", str(end), "-i", str(root / "raw" / t["file"]),
                             "-c:v", "libx264", "-crf", "18", "-c:a", "aac", str(target)], check=True)
         if stem not in known:
             added.append({**source, "case_id": stem, "title": f"{source['title']} [{start:g}-{end:g} s]", "claim": t["claim"], "file": target.name,

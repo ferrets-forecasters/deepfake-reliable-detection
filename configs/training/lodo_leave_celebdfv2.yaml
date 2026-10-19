@@ -1,0 +1,42 @@
+﻿name: lodo_leave_celebdfv2
+description: >
+  Proper LODO: train on PolyglotFake + HiDF + FakeAVCeleb + FF++ (4 domains).
+  Test = ALL CelebDFv2 (fully unseen, cross-dataset generalization).
+group: lodo
+
+model:
+  type:       moe
+  backbone:   gru
+  hidden_dim: 256
+  num_layers: 2
+  dropout:    0.3
+
+data:
+  experiment: lodo_leave_celebdfv2
+  val_ratio:  0.20
+  seed:       42
+
+training:
+  epochs:          60
+  batch_size:      16
+  lr:              1.0e-4
+  weight_decay:    1.0e-3
+  patience:        12
+  label_smoothing: 0.05
+  modal_drop_p:    0.25
+  feat_noise:      0.01
+  mixup_alpha:     0.2
+
+loss:
+  dann_lambda:             0.1
+  focal_gamma:             1.0
+  focal_alpha:             0.75
+  gate_supervision_weight: 0.1
+
+swa:
+  start: 0.75
+  lr:    5.0e-5
+
+debug:
+  sanity_fraction: null
+

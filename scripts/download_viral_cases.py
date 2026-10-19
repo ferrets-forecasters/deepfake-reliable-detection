@@ -6,8 +6,7 @@ import time
 from pathlib import Path
 
 from deepfake_detection.config import load_config
-
-FFMPEG_DIR = Path(r"C:\tools\ffmpeg\bin")
+from deepfake_detection.utils.tools import find_tool
 
 
 def main() -> None:
@@ -35,7 +34,7 @@ def main() -> None:
             print(f"{row['file']}: already there ({target.stat().st_size / 1e6:.1f} MB)")
             continue
         base = {"format": fmt, "outtmpl": str(target.with_suffix(".%(ext)s")), "merge_output_format": "mp4", "quiet": True, "no_warnings": True,
-                "ffmpeg_location": str(FFMPEG_DIR), "noprogress": True, "retries": 5, "fragment_retries": 5}
+                "ffmpeg_location": str(find_tool("ffmpeg").parent), "noprogress": True, "retries": 5, "fragment_retries": 5}
         attempts = [{}, {"extractor_args": {"youtube": {"player_client": ["tv"]}}}, {"extractor_args": {"youtube": {"player_client": ["android"]}}},
                     {"format": f"b[height<={args.max_height}]/b"}]
         size, line = 0, row["file"]

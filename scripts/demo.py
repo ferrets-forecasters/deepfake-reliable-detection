@@ -7,24 +7,23 @@ import time
 from dataclasses import asdict
 from pathlib import Path
 
-import yaml
 
 from deepfake_detection.config import load_config
-from deepfake_detection.config.config import REPO_ROOT, _project_root
+from deepfake_detection.config.config import _project_root
 from deepfake_detection.data.face_crop import MultiFaceTracker
 from deepfake_detection.data.segment_embedding import SegmentEmbedder
 from deepfake_detection.evaluation.checkpoint_scoring import CheckpointScorer
 from deepfake_detection.inference import MultiSubjectInference, SingleSpeaker
-from deepfake_detection.inference.camera import FFMPEG, list_devices, record_chunk
+from deepfake_detection.inference.camera import list_devices, record_chunk
 from deepfake_detection.inference.summary import RollingVerdict, format_result
-from deepfake_detection.reference import load_reference_repo
+from deepfake_detection.reference import load_reference
 from deepfake_detection.utils.gpu import cap_gpu_memory
+from deepfake_detection.utils.tools import find_tool
 
 
 def build_pipeline(args) -> MultiSubjectInference:
     config = load_config(args.config)
-    repro = yaml.safe_load(Path(args.reproduction).read_text(encoding="utf-8"))
-    reference = load_reference_repo(_project_root() / repro["reference_repo"])
+    reference = load_reference()
     if args.no_diarization:
         diarizer = SingleSpeaker()
     else:
@@ -70,7 +69,7 @@ def run_camera(pipeline, args, out_dir: Path) -> None:
         try:
             while args.chunks == 0 or chunk < args.chunks:
                 path = Path(tmp) / f"chunk_{chunk:04d}.mp4"
-                record_chunk(FFMPEG, video_device, audio_device, args.seconds, path, args.size)
+                record_chunk(find_tool("ffmpeg"), video_device, audio_device, args.seconds, path, args.size)
                 started = time.time()
                 result = pipeline.run(path)
                 print(format_result(result, f"chunk {chunk}"))
@@ -106,7 +105,6 @@ def main() -> None:
     parser.add_argument("--skip-done", action="store_true", help="skip a video whose result file already exists, to resume a long list")
     parser.add_argument("--gpu-memory-fraction", type=float, default=None, help="cap this process's CUDA memory, for running beside trainings")
     parser.add_argument("--config", default=None)
-    parser.add_argument("--reproduction", default=str(REPO_ROOT / "configs" / "reproduction.yaml"))
     args = parser.parse_args()
 
     if args.list_devices:

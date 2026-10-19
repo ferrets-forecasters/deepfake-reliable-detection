@@ -9,10 +9,10 @@ import yaml
 from sklearn.metrics import average_precision_score, f1_score, roc_auc_score
 
 from deepfake_detection.config import load_config
-from deepfake_detection.config.config import REPO_ROOT, _project_root
+from deepfake_detection.config.config import REPO_ROOT
 from deepfake_detection.evaluation.checkpoint_scoring import CheckpointScorer
 from deepfake_detection.evaluation.reproduce import test_records
-from deepfake_detection.reference import load_reference_repo
+from deepfake_detection.reference import load_reference
 from deepfake_detection.utils.progress import ResumableCsv, progress
 
 VIDEO_DIM = 768
@@ -104,7 +104,7 @@ def main() -> None:
         return
 
     repro = yaml.safe_load(Path(args.reproduction).read_text(encoding="utf-8"))
-    reference = load_reference_repo(_project_root() / repro["reference_repo"])
+    reference = load_reference()
     scorer = CheckpointScorer(reference, config.paths.checkpoints_dir(args.model))
     split = {**repro["split"], **({"seed": args.split_seed} if args.split_seed is not None else {})}
     records = test_records(reference, config, repro["models"].get(args.model, {"experiment": "combined"}), split)

@@ -5,16 +5,14 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-import yaml
 
 from deepfake_detection.config import load_config
-from deepfake_detection.config.config import REPO_ROOT, _project_root
 from deepfake_detection.data.audio_features import extract_audio_waveform
 from deepfake_detection.data.face_crop import MultiFaceTracker
 from deepfake_detection.data.segment_embedding import VIDEOMAE_FRAMES, WHISPER_SAMPLE_RATE, SegmentEmbedder
 from deepfake_detection.evaluation.checkpoint_scoring import CheckpointScorer
 from deepfake_detection.inference.multi_subject import crop_track_frames
-from deepfake_detection.reference import load_reference_repo
+from deepfake_detection.reference import load_reference
 from deepfake_detection.xai.cross_modal import (
     audio_shift_probe, explain_segment, lip_audio_alignment, mismatch_probe, mouth_cam_share,
 )
@@ -28,7 +26,6 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Explain one face in one 2-second segment: video CAM, audio saliency, branch contributions, mouth overlap, audio shift sweep.")
     parser.add_argument("video")
     parser.add_argument("--config", default=None)
-    parser.add_argument("--reproduction", default=str(REPO_ROOT / "configs" / "reproduction.yaml"))
     parser.add_argument("--model", default="moe_combined")
     parser.add_argument("--dataset", default="fakeavceleb", help="dataset name used in the output folder")
     parser.add_argument("--start", type=float, default=0.0, help="segment start in seconds")
@@ -38,8 +35,7 @@ def main() -> None:
     args = parser.parse_args()
 
     config = load_config(args.config)
-    repro = yaml.safe_load(Path(args.reproduction).read_text(encoding="utf-8"))
-    reference = load_reference_repo(_project_root() / repro["reference_repo"])
+    reference = load_reference()
     scorer = CheckpointScorer(reference, config.paths.checkpoints_dir(args.model))
     embedder = SegmentEmbedder()
     tracker = MultiFaceTracker(config.preprocessing.video.face_detector_fps)

@@ -10,6 +10,7 @@ from tqdm import tqdm
 from build_tiled_set import fake_side
 from deepfake_detection.config import load_config
 from deepfake_detection.data.tiling import conversation_pair, index_clips, own_test_clips, pick_pairs
+from deepfake_detection.utils.tools import find_tool
 
 # left kind, right kind. The left person talks first, then the right person.
 PLANS = [("real", "real"), ("fake_av", "real"), ("real", "fake_av"), ("fake_v", "real"), ("real", "fake_v")]
@@ -31,7 +32,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--height", type=int, default=224, help="frame height; the FakeAVCeleb clips are 224x224, so the default keeps the original pixels")
     parser.add_argument("--lossless", action="store_true", help="write FFV1 and PCM in .mkv, no lossy re-encoding")
-    parser.add_argument("--ffmpeg", default=r"C:\tools\ffmpeg\bin\ffmpeg.exe")
+    parser.add_argument("--ffmpeg", default=None, help="ffmpeg executable; default: ffmpeg on PATH")
     parser.add_argument("--own-test-only", action="store_true", help="use only clips of the own seed-42 test split (labels/test_split.csv), so no clip comes from a subject a model trained on")
     parser.add_argument("--name", default=None)
     args = parser.parse_args()
@@ -53,7 +54,7 @@ def main() -> None:
             sample_id = f"{left_kind}_{right_kind}_{pair_number:03d}"
             out = raw_out / f"{sample_id}{'.mkv' if args.lossless else '.mp4'}"
             if not out.exists():
-                conversation_pair(Path(args.ffmpeg), left, right, out, args.turn_seconds, args.height, args.lossless)
+                conversation_pair(find_tool("ffmpeg", args.ffmpeg), left, right, out, args.turn_seconds, args.height, args.lossless)
             side = fake_side(left_kind, right_kind)
             rows.append({
                 "sample_id": sample_id, "raw_path": str(out.relative_to(out_root)),

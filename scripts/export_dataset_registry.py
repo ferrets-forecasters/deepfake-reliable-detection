@@ -4,7 +4,7 @@ import argparse
 import csv
 from pathlib import Path
 
-from deepfake_detection.config import Config, DatasetSpec, load_config
+from deepfake_detection.config import Config, load_config
 
 
 def _local_status(raw_dir: Path) -> tuple[str, str]:

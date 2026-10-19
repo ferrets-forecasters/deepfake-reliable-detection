@@ -27,3 +27,6 @@ Thumbs.db
 logs/
 checkpoints/
 outputs/
+
+# Personal Drive ids of dataset archives (template: configs/drive_archives.example.yaml)
+configs/*.local.yaml

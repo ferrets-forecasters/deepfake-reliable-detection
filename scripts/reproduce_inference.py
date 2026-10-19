@@ -7,11 +7,11 @@ import yaml
 from tqdm import tqdm
 
 from deepfake_detection.config import load_config
-from deepfake_detection.config.config import REPO_ROOT, _project_root
+from deepfake_detection.config.config import REPO_ROOT
 from deepfake_detection.evaluation.reproduce import (
     compare_with_stored, evaluate_model, save_outputs, test_records, timed,
 )
-from deepfake_detection.reference import load_reference_repo
+from deepfake_detection.reference import load_reference
 
 
 def main() -> None:
@@ -23,7 +23,7 @@ def main() -> None:
 
     config = load_config(args.config)
     repro = yaml.safe_load(Path(args.reproduction).read_text(encoding="utf-8"))
-    reference = load_reference_repo(_project_root() / repro["reference_repo"])
+    reference = load_reference()
 
     summary = []
     for name in tqdm(args.models or list(repro["models"]), desc="models"):

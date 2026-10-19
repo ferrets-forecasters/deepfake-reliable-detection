@@ -18,13 +18,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 from remote_zip import DRIVE_URL, open_remote  # noqa: E402
 
 from deepfake_detection.config import load_config  # noqa: E402
+from deepfake_detection.data.drive_archives import load_drive_archives  # noqa: E402
 
-DRIVE_ARCHIVES = {
-    "fakeavceleb": ("1LlDGdHKx3LVs2gJaY_7qAsLPwW3bPyv8", "FAKEAVCELEB.zip"),
-    "celebdfv2": ("1ycE03-UpDrrTKfem5FSewMNf5mtHL5Cw", "Celeb-DF-v2.zip"),
-    "ffpp": ("18M8bOxbPT_d6Zii7Ah2HAV7XgG0_piY_", "FaceForensics++ Dataset (C23).zip"),
-    "polyglotfake": ("1xH5DTDHghOsP3R8pQLUuSz_MfKY60yc5", "PolyGlotFake.rar"),
-}
 EXTRA_ZENODO = {"openforensics": "5528418"}
 HEADERS = {"Accept": "application/vnd.github+json", "User-Agent": "deepfake-release-check"}
 
@@ -92,14 +87,15 @@ def main() -> None:
 
     with open(config.paths.datasets_root / "manifest.csv", encoding="utf-8", newline="") as f:
         registry = {r["name"]: r for r in csv.DictReader(f)}
+    drive_archives = load_drive_archives(required=False)
     jobs: list[tuple[str, str, object]] = []
     for name, row in registry.items():
         jobs.append((name, "github", lambda url=row["source_url"]: github(url)))
         zen = re.search(r"zenodo\.org/records/(\d+)", row["download_url"])
         if zen:
             jobs.append((name, "zenodo", lambda rec=zen.group(1): zenodo(rec)))
-        if name in DRIVE_ARCHIVES:
-            file_id, file_name = DRIVE_ARCHIVES[name]
+        if len(drive_archives.get(name, [])) == 1:
+            file_id, file_name, _ = drive_archives[name][0]
             jobs.append((name, "shared_drive_archive", lambda n=name, i=file_id, fn=file_name: drive_archive(config, n, i, fn)))
     for name, record in EXTRA_ZENODO.items():
         jobs.append((name, "zenodo", lambda rec=record: zenodo(rec)))

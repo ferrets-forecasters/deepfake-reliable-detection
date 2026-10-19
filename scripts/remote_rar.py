@@ -12,6 +12,8 @@ from pathlib import Path
 import requests
 from tqdm import tqdm
 
+from deepfake_detection.utils.tools import find_tool
+
 SIGNATURE = b"Rar!\x1a\x07\x01\x00"
 HEADER_WINDOW = 4096
 PROBE_WINDOW = 2_000_000
@@ -123,7 +125,7 @@ def main() -> None:
     parser.add_argument("--url", required=True)
     parser.add_argument("--member", nargs="+", required=True, help="exact member paths inside the archive")
     parser.add_argument("--out", type=Path, required=True)
-    parser.add_argument("--unrar", default=r"C:\Program Files\WinRAR\UnRAR.exe", help="RAR extractor; bsdtar leaves the end of some compressed members as zeros")
+    parser.add_argument("--unrar", default=None, help="RAR extractor (default: unrar on PATH); bsdtar leaves the end of some compressed members as zeros")
     args = parser.parse_args()
 
     session = requests.Session()
@@ -147,7 +149,7 @@ def main() -> None:
             archive = Path(scratch) / "one.rar"
             archive.write_bytes(prefix + data)
             args.out.mkdir(parents=True, exist_ok=True)
-            subprocess.run([args.unrar, "x", "-y", "-inul", str(archive), f"{args.out}{os.sep}"], check=False)
+            subprocess.run([str(find_tool("unrar", args.unrar)), "x", "-y", "-inul", str(archive), f"{args.out}{os.sep}"], check=False)
             if not target.exists():
                 print(f"extraction failed: {member}")
 

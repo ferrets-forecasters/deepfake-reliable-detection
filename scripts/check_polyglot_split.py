@@ -9,9 +9,9 @@ from pathlib import Path
 import yaml
 
 from deepfake_detection.config import load_config
-from deepfake_detection.config.config import REPO_ROOT, _project_root
+from deepfake_detection.config.config import REPO_ROOT
 from deepfake_detection.evaluation.reproduce import dataset_records
-from deepfake_detection.reference import load_reference_repo
+from deepfake_detection.reference import load_reference
 
 FAKE_NAME = re.compile(r"^fake_(?P<source>[a-z]{2}_\d+)_to_(?P<target>[a-z]{2})_(?P<voice>.+)$")
 
@@ -25,7 +25,7 @@ def main() -> None:
 
     config = load_config(args.config)
     repro = yaml.safe_load(Path(args.reproduction).read_text(encoding="utf-8"))
-    reference = load_reference_repo(_project_root() / repro["reference_repo"])
+    reference = load_reference()
     seed = args.seed if args.seed is not None else repro["split"]["seed"]
 
     records = dataset_records(reference, config, "polyglotfake")

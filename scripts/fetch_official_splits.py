@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import urllib.request
-from pathlib import Path
 
 from deepfake_detection.config import load_config
 

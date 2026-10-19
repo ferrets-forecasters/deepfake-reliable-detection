@@ -31,7 +31,7 @@ def square_crop(frame: np.ndarray, box: tuple[float, float, float, float], scale
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Write one matched frame of a real video and of its fake, cropped to the same square around the face found in the real frame, in the folder layout of draft_writing's dataset overview figure.")
+    parser = argparse.ArgumentParser(description="Write one matched frame of a real video and of its fake, cropped to the same square around the face found in the real frame, one folder per dataset.")
     parser.add_argument("--out", type=Path, required=True, help="dataset folder, for example datasets/samples/celebdfv2; real/<name>/ and fake/<name>/ are created inside")
     parser.add_argument("--pair", nargs=2, action="append", metavar=("REAL", "FAKE"), required=True, help="paths of a real video and its fake")
     parser.add_argument("--frame", type=int, default=40)

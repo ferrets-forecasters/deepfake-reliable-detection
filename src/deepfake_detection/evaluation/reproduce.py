@@ -9,13 +9,13 @@ import torch
 import yaml
 
 from deepfake_detection.config import Config
-from deepfake_detection.reference import ReferenceRepo
+from deepfake_detection.reference import Reference
 
 COMPARED_METRICS = ("f1", "ap", "auc", "alpha_mean")
 PER_TYPE_KEYS = ("audio_video", "video_only")
 
 
-def dataset_records(reference: ReferenceRepo, config: Config, name: str) -> list:
+def dataset_records(reference: Reference, config: Config, name: str) -> list:
     spec = config.dataset(name)
     return reference.scan(
         config.embedding_dir(name),
@@ -26,7 +26,7 @@ def dataset_records(reference: ReferenceRepo, config: Config, name: str) -> list
 
 
 def test_subjects_70_30(records: list, seed: int, test_share: float = 0.30) -> list:
-    """The test part of the old repo's 56/14/30 subject split: shuffle the sorted subjects, the first 30% are the test."""
+    """The test part of the reference 56/14/30 subject split: shuffle the sorted subjects, the first 30% are the test."""
     rng = random.Random(seed)
     subjects = sorted({r[2] for r in records})
     rng.shuffle(subjects)
@@ -34,7 +34,7 @@ def test_subjects_70_30(records: list, seed: int, test_share: float = 0.30) -> l
     return [r for r in records if r[2] in test_subjects]
 
 
-def test_records(reference: ReferenceRepo, config: Config, experiment: dict, split: dict) -> list:
+def test_records(reference: Reference, config: Config, experiment: dict, split: dict) -> list:
     if experiment["experiment"] == "leave_out":
         return dataset_records(reference, config, experiment["held_out"])
     if experiment["experiment"] == "split_70_30":
@@ -56,7 +56,7 @@ def _resize_domain_head(model: torch.nn.Module, state: dict) -> None:
         head[-1] = torch.nn.Linear(in_features, out_features)
 
 
-def evaluate_model(reference: ReferenceRepo, model_dir: Path, records: list, loader_cfg: dict, checkpoint: str = "best_f1") -> dict:
+def evaluate_model(reference: Reference, model_dir: Path, records: list, loader_cfg: dict, checkpoint: str = "best_f1") -> dict:
     meta = yaml.safe_load((model_dir / "results.yaml").read_text(encoding="utf-8"))
     model = reference.build_model(meta["model"]).to(reference.device)
     state = torch.load(model_dir / f"{checkpoint}.pt", map_location=reference.device, weights_only=True)

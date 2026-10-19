@@ -11,8 +11,8 @@ from tqdm import tqdm
 from demo import build_pipeline
 from deepfake_detection.config import load_config
 from deepfake_detection.config.config import REPO_ROOT, _project_root
-from deepfake_detection.inference.camera import FFMPEG
 from deepfake_detection.inference.render import render_result
+from deepfake_detection.utils.tools import find_tool
 from deepfake_detection.xai.overlay import overlay_cam_on_box
 
 SEGMENT_SECONDS = 2.0
@@ -77,7 +77,7 @@ def main() -> None:
     cap.release()
 
     subprocess.run([
-        str(FFMPEG), "-y", "-loglevel", "error", "-i", str(silent), "-i", str(path), "-map", "0:v", "-map", "1:a?",
+        str(find_tool("ffmpeg")), "-y", "-loglevel", "error", "-i", str(silent), "-i", str(path), "-map", "0:v", "-map", "1:a?",
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(final),
     ], check=True)
     silent.unlink()

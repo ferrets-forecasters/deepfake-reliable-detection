@@ -1,0 +1,14 @@
+# Drive file ids of the dataset archives that some scripts read or download (check_dataset_releases, download_drive_archives,
+# export_remote_example_pairs, fetch_test_videos). Copy this file to drive_archives.local.yaml, which is not tracked, and fill in the ids
+# of your own copy of each archive. Obtain the datasets from their owners (configs/datasets.yaml lists the access pages).
+hidf:
+  - {id: <drive file id>, name: Real-vid.zip}
+  - {id: <drive file id>, name: Fake-vid.zip}
+fakeavceleb:
+  - {id: <drive file id>, name: FAKEAVCELEB.zip}
+celebdfv2:
+  - {id: <drive file id>, name: Celeb-DF-v2.zip, bytes: 9952957051}
+ffpp:
+  - {id: <drive file id>, name: "FaceForensics++ Dataset (C23).zip"}
+polyglotfake:
+  - {id: <drive file id>, name: PolyGlotFake.rar}

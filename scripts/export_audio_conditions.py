@@ -8,17 +8,15 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-import yaml
 from tqdm import tqdm
 
 from deepfake_detection.config import load_config
-from deepfake_detection.config.config import REPO_ROOT, _project_root
 from deepfake_detection.data.audio_features import extract_audio_waveform
 from deepfake_detection.data.face_crop import MultiFaceTracker
 from deepfake_detection.data.segment_embedding import VIDEOMAE_FRAMES, WHISPER_SAMPLE_RATE, SegmentEmbedder
 from deepfake_detection.evaluation.checkpoint_scoring import CheckpointScorer
 from deepfake_detection.inference.multi_subject import crop_track_frames, frame_reader, segment_frame_range
-from deepfake_detection.reference import load_reference_repo
+from deepfake_detection.reference import load_reference
 from deepfake_detection.utils.gpu import cap_gpu_memory
 from deepfake_detection.xai.lipsync import shift_waveform
 
@@ -119,13 +117,11 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--gpu-memory-fraction", type=float, default=None)
     parser.add_argument("--config", default=None)
-    parser.add_argument("--reproduction", default=str(REPO_ROOT / "configs" / "reproduction.yaml"))
     args = parser.parse_args()
 
     cap_gpu_memory(args.gpu_memory_fraction)
     config = load_config(args.config)
-    repro = yaml.safe_load(Path(args.reproduction).read_text(encoding="utf-8"))
-    scorer = CheckpointScorer(load_reference_repo(_project_root() / repro["reference_repo"]), config.paths.checkpoints_dir(args.model))
+    scorer = CheckpointScorer(load_reference(), config.paths.checkpoints_dir(args.model))
     embedder = SegmentEmbedder()
     tracker = MultiFaceTracker(25, max_faces=1)
     clips = test_clips(config)
