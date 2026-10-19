@@ -124,6 +124,15 @@ def make_handler(pipeline, upload_dir: Path, out_dir: Path, keep_uploads: bool):
         def send_json(self, code: int, payload: dict) -> None:
             self.send_body(code, json.dumps(payload).encode("utf-8"), "application/json; charset=utf-8")
 
+        def discard_body(self) -> None:
+            """Read the request body before an early refusal, so the client gets the reply and not a reset connection."""
+            remaining = min(int(self.headers.get("Content-Length", 0)), MAX_UPLOAD_BYTES)
+            while remaining > 0:
+                chunk = self.rfile.read(min(1 << 20, remaining))
+                if not chunk:
+                    break
+                remaining -= len(chunk)
+
         def do_GET(self):
             if urlparse(self.path).path == "/":
                 self.send_body(200, PAGE.encode("utf-8"), "text/html; charset=utf-8")
@@ -133,9 +142,11 @@ def make_handler(pipeline, upload_dir: Path, out_dir: Path, keep_uploads: bool):
         def do_POST(self):
             parsed = urlparse(self.path)
             if parsed.path != "/score":
+                self.discard_body()
                 return self.send_json(404, {"error": "not found"})
             name = re.sub(r"[^A-Za-z0-9._-]", "_", Path(parse_qs(parsed.query).get("name", ["video.mp4"])[0]).name)
             if Path(name).suffix.lower() not in ALLOWED_SUFFIXES:
+                self.discard_body()
                 return self.send_json(400, {"error": f"file type not accepted, use one of {sorted(ALLOWED_SUFFIXES)}"})
             length = int(self.headers.get("Content-Length", 0))
             if not 0 < length <= MAX_UPLOAD_BYTES:
@@ -157,12 +168,13 @@ def make_handler(pipeline, upload_dir: Path, out_dir: Path, keep_uploads: bool):
                 payload = build_payload(result, name, seconds)
                 (out_dir / f"{target.stem}.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
                 payload["preview"] = preview_image(target, result, person_labels(result)) if result.subjects else None
-                self.send_json(200, payload)
+                reply = (200, payload)
             except Exception as error:
-                self.send_json(500, {"error": f"{type(error).__name__}: {error}"})
+                reply = (500, {"error": f"{type(error).__name__}: {error}"})
             finally:
                 if not keep_uploads:
                     target.unlink(missing_ok=True)
+            self.send_json(*reply)
 
     return Handler
 
