@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import yaml
+from scipy.stats import binomtest
 from sklearn.metrics import average_precision_score, f1_score, roc_auc_score
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -206,6 +207,19 @@ def text_gate_vs_static(report: Report, paper: dict) -> None:
     report.check("audio dataset and seed pairs with a higher gated AUC", int((audio.auc_gate > audio.auc_static).sum()), expected["pairs"]["auc_higher"])
     report.check("audio dataset and seed pairs with a higher gated F1", int((audio.f1_gate.round(4) > audio.f1_static.round(4)).sum()), expected["pairs"]["f1_higher"])
     report.check("audio dataset and seed pairs with an equal F1", int((audio.f1_gate.round(4) == audio.f1_static.round(4)).sum()), expected["pairs"]["f1_equal"])
+    for seed, row in expected["mcnemar_per_seed"].items():
+        gate, static = (predictions(seed_folder(model, int(seed))).set_index("video") for model in ("moe", "concat"))
+        both = gate.join(static, lsuffix="_gate", rsuffix="_static", how="inner")
+        right_gate = (both.p_fake_best_f1_gate >= 0.5) == (both.label_gate == 1)
+        right_static = (both.p_fake_best_f1_static >= 0.5) == (both.label_gate == 1)
+        only = (int((right_gate & ~right_static).sum()), int((~right_gate & right_static).sum()))
+        report.check(f"seed {seed} gate right only", only[0], row["only"][0], places=0)
+        report.check(f"seed {seed} static right only", only[1], row["only"][1], places=0)
+        p_value = binomtest(only[0], sum(only), 0.5).pvalue
+        if row["p"] == "below 0.0001":
+            report.check(f"seed {seed} mcnemar p below 0.0001", float(p_value < 0.0001), 1.0, places=0)
+        else:
+            report.check(f"seed {seed} mcnemar p", float(p_value), row["p"], places=3)
     names = {"gate": "moe_combined_retrain", "visual": "visual_branch_alone", "audio_visual": "audio_visual_branch_alone", "static": "concat_combined_retrain"}
     for dataset, row in expected["branches"].items():
         for model, (auc, f1) in row.items():
@@ -224,6 +238,105 @@ def text_gate_vs_static(report: Report, paper: dict) -> None:
                          ("share_of_static_errors_in_least_confident_static", "static errors in the least confident")):
         report.check(f"{name} lowest, percent", float(triage[column].min() * 100), expected["triage"][column][0], places=0)
         report.check(f"{name} highest, percent", float(triage[column].max() * 100), expected["triage"][column][1], places=0)
+
+
+def text_new_tables(report: Report, paper: dict) -> None:
+    """The AUC columns of Tabel V, the ablation tables VI and VII, and the audio-use table of Lampiran E."""
+    expected = paper["new_tables"]
+    pooled = pd.read_csv(ROOT / "results" / "analyses" / "gate_vs_static" / "per_dataset.csv").set_index("group")
+    for key, (gate_auc, static_auc) in expected["pooled_auc"].items():
+        group = pooled.loc["all videos" if key == "all" else key]
+        report.check(f"{key} pooled auc gate", float(group.auc_gate), gate_auc)
+        report.check(f"{key} pooled auc static", float(group.auc_static), static_auc)
+    names = {"gate": "moe_combined_retrain", "static": "concat_combined_retrain", "audio_visual": "audio_visual_branch_alone",
+             "visual": "visual_branch_alone", "video_only": "video_only_pure", "audio_only": "audio_only_pure"}
+    for model, (f1, ap, auc) in expected["ablation"].items():
+        got = scores(seed42(names[model]))
+        report.check(f"ablation {model} f1", got["f1"], f1, alternative=got["f1_strict"])
+        report.check(f"ablation {model} ap", got["ap"], ap)
+        report.check(f"ablation {model} auc", got["auc"], auc)
+    for dataset, row in expected["per_dataset"].items():
+        for model, (f1, auc) in row.items():
+            frame = seed42(names[model])
+            got = scores(frame[frame.dataset == dataset])
+            report.check(f"{dataset} {model} f1", got["f1"], f1, alternative=got["f1_strict"])
+            report.check(f"{dataset} {model} auc", got["auc"], auc)
+    changes = {"audio_zeroed": [], "video_zeroed": [], "other": []}
+    for run in ("moe_combined_retrain", "moe_combined_seed43", "moe_combined_seed44"):
+        scope = yaml.safe_load((ROOT / "results" / "metrics" / f"expert_tests_{run}" / "metrics.yaml").read_text(encoding="utf-8"))["scopes"]["all test videos"]
+        base = scope["baseline"]["f1_macro"]
+        changes["audio_zeroed"].append(base - scope["audio_zeroed"]["f1_macro"])
+        changes["video_zeroed"].append(base - scope["video_zeroed"]["f1_macro"])
+        changes["other"] += [abs(scope[k]["f1_macro"] - base) for k in ("audio_from_other_video", "audio_shifted_one_segment", "audio_order_shuffled")]
+    use = expected["audio_use"]
+    report.check("audio from another video, shifted or shuffled: largest F1 change", max(changes["other"]), use["other_audio_max"])
+    for key in ("audio_zeroed", "video_zeroed"):
+        report.check(f"{key} F1 drop, smallest of three seeds", min(changes[key]), use[key][0], places=3)
+        report.check(f"{key} F1 drop, largest of three seeds", max(changes[key]), use[key][1], places=3)
+
+
+def text_eight_splits(report: Report, paper: dict) -> None:
+    """Tabel XIV of Lampiran E and the two sentences about it: AUC, the videos only one model gets right and the McNemar p of each of the eight
+    test splits (written by mcnemar_per_split.py from the saved predictions)."""
+    expected = paper["eight_splits"]
+    table = pd.read_csv(ROOT / "results" / "analyses" / "gate_vs_static" / "per_split.csv").set_index("split")
+    for name, row in expected["splits"].items():
+        got = table.loc[name.lower()]
+        report.check(f"{name} AUC gate", float(got.auc_gate), row["auc"][0])
+        report.check(f"{name} AUC static", float(got.auc_static), row["auc"][1])
+        report.check(f"{name} gate right only", int(got.only_gate), row["only"][0], places=0)
+        report.check(f"{name} static right only", int(got.only_static), row["only"][1], places=0)
+        if row["p"] == "below 0.0001":
+            report.check(f"{name} mcnemar p below 0.0001", float(got.mcnemar_p < 0.0001), 1.0, places=0)
+        else:
+            report.check(f"{name} mcnemar p", float(got.mcnemar_p), row["p"], places=3)
+    report.check("splits where the gate is right on more videos", int((table.only_gate > table.only_static).sum()), expected["gate_more"], places=0)
+    report.check("splits where the static model is right on more videos", int((table.only_gate < table.only_static).sum()), expected["static_more"], places=0)
+    report.check("splits with p below 0.0001", int((table.mcnemar_p < 0.0001).sum()), 1, places=0)
+
+
+def text_efficiency(report: Report, paper: dict) -> None:
+    """Tabel IX: parameters, GFLOP, time and real-time factor per 2-second segment, from the complexity files and the speed benchmark."""
+    expected = paper["efficiency"]
+    complexity = ROOT / "results" / "metrics" / "complexity"
+    branches = yaml.safe_load((complexity / "branches.yaml").read_text(encoding="utf-8"))
+    face = yaml.safe_load((complexity / "face_model.yaml").read_text(encoding="utf-8"))["pipeline"]
+    size = yaml.safe_load((complexity / "complexity.yaml").read_text(encoding="utf-8"))
+    timings = yaml.safe_load((ROOT / "results" / "metrics" / "benchmark_inference_speed" / "timings.yaml").read_text(encoding="utf-8"))["timings"]
+    video, audio = size["VideoMAE-base encoder, frozen"], size["Whisper-medium encoder, frozen"]
+    ms = {"face_detection": timings["face detection, 8 per second, one segment (ms)"], "videomae": timings["VideoMAE-base, one segment, fp16 (ms)"],
+          "whisper": timings["Whisper-medium encoder, one segment, fp16 (ms)"]}
+    segment = 2.0
+    parts = {"face_detection": (face["parameters"] / 1e6, face["gflop_per_segment"]), "videomae": (video["parameters_M"], video["gflops_per_2s_segment"]),
+             "whisper": (audio["parameters_M"], audio["gflops_per_2s_segment"])}
+    small = ("audio_visual_branch", "visual_branch", "gate")
+    for key, (parameters, gflop) in parts.items():
+        report.check(f"{key} parameters (M)", parameters, expected[key]["parameters_m"], places=2)
+        report.check(f"{key} gflop", gflop, expected[key]["gflop"], places=1 if gflop < 10 else 0)
+        report.check(f"{key} ms", ms[key], expected[key]["ms"], places=1)
+        report.check(f"{key} rtf", ms[key] / 1000 / segment, expected[key]["rtf"], places=3)
+    for key in ("audio_visual_branch", "visual_branch"):
+        report.check(f"{key} parameters (M)", branches[key]["parameters"] / 1e6, expected[key]["parameters_m"], places=2)
+    for key in small:
+        report.check(f"{key} below 1 ms per segment", float(branches[key]["ms_per_segment"] < 1), 1.0, places=0)
+    report.check("audio-visual branch gflop per segment", branches["audio_visual_branch"]["gflop_per_segment"], expected["audio_visual_branch"]["gflop"], places=4)
+    report.check("visual branch gflop below 0.001 per segment", float(branches["visual_branch"]["gflop_per_segment"] < 0.001), 1.0, places=0)
+    report.check("gate parameters", branches["gate"]["parameters"], expected["gate"]["parameters"], places=0)
+    total_parameters = sum(p for p, _ in parts.values()) + sum(branches[k]["parameters"] for k in small) / 1e6
+    total_gflop = sum(g for _, g in parts.values()) + sum(branches[k]["gflop_per_segment"] for k in small)
+    total_ms = sum(ms.values()) + sum(branches[k]["ms_per_segment"] for k in small)
+    report.check("total parameters (M)", total_parameters, expected["total"]["parameters_m"], places=0)
+    report.check("total gflop", total_gflop, expected["total"]["gflop"], places=0)
+    report.check("total ms", total_ms, expected["total"]["ms"], places=0)
+    report.check("total rtf, measured on a 120 s clip", timings["moe_combined_retrain: real-time factor"], expected["total"]["rtf"], places=3)
+    report.check("total rtf, sum of the rows as printed", sum(expected[k]["rtf"] for k in parts), expected["total"]["rtf"], places=3)
+    report.check("total rtf, sum of the parts before rounding", total_ms / 1000 / segment, expected["total"]["rtf"], places=2)
+    report.check("share of the gflop in the two encoders (percent)", (video["gflops_per_2s_segment"] + audio["gflops_per_2s_segment"]) / total_gflop * 100,
+                 expected["encoder_gflop_share"], places=1)
+    trained = size["moe_combined_retrain"]
+    report.check("trained parameters (M)", trained["classifier_parameters_M"], expected["trained_parameters_m"], places=2)
+    training_only = trained["parts_parameters_M"]["visual_repr_proj"] + trained["parts_parameters_M"]["domain_head"]
+    report.check("parameters used only in training (M)", training_only, expected["training_only_parameters_m"], places=2)
 
 
 def text_other_checks(report: Report, paper: dict) -> None:
@@ -275,20 +388,21 @@ def text_other_checks(report: Report, paper: dict) -> None:
     size = yaml.safe_load((ROOT / "results" / "metrics" / "complexity" / "complexity.yaml").read_text(encoding="utf-8"))
     report.check("videomae parameters (M)", size["VideoMAE-base encoder, frozen"]["parameters_M"], expected["size"]["videomae_m"], places=1)
     report.check("whisper parameters (M)", size["Whisper-medium encoder, frozen"]["parameters_M"], expected["size"]["whisper_m"], places=1)
-    report.check("classifier parameters (M)", size["moe_combined"]["classifier_parameters_M"], expected["size"]["classifier_m"], places=2)
+    report.check("classifier parameters (M)", size["moe_combined_retrain"]["classifier_parameters_M"], expected["size"]["classifier_m"], places=2)
     report.check("videomae gflop per segment", size["VideoMAE-base encoder, frozen"]["gflops_per_2s_segment"], expected["size"]["videomae_gflop"], places=0)
     report.check("whisper gflop per segment", size["Whisper-medium encoder, frozen"]["gflops_per_2s_segment"], expected["size"]["whisper_gflop"], places=0)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--only", choices=["in_distribution", "leave_one_out", "two_people", "calibration", "ablation", "per_dataset", "alpha", "other", "gate_vs_static"], nargs="*")
+    parser.add_argument("--only", choices=["in_distribution", "leave_one_out", "two_people", "calibration", "ablation", "per_dataset", "alpha", "other", "gate_vs_static", "new_tables", "eight_splits", "efficiency"], nargs="*")
     args = parser.parse_args()
     paper = yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
     report = Report()
     steps = {"in_distribution": tabel_in_distribution, "leave_one_out": tabel_leave_one_out,
              "two_people": tabel_two_people, "calibration": tabel_calibration,
-             "ablation": text_ablation, "per_dataset": text_per_dataset, "alpha": text_alpha, "other": text_other_checks, "gate_vs_static": text_gate_vs_static}
+             "ablation": text_ablation, "per_dataset": text_per_dataset, "alpha": text_alpha, "other": text_other_checks, "gate_vs_static": text_gate_vs_static, "new_tables": text_new_tables,
+             "eight_splits": text_eight_splits, "efficiency": text_efficiency}
     for name, step in steps.items():
         if not args.only or name in args.only:
             step(report, paper)

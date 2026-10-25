@@ -91,13 +91,13 @@ Every script prints its options with `--help`.
 | Embeddings and manifests | `extract_embeddings`, `extract_all_datasets`, `build_embedding_manifest`, `build_feature_cache`, `build_manifests`, `extract_features`, `make_cv_folds`, `export_dataset_registry`, `fetch_official_splits` |
 | Training | `train_reference`, `train_queue`, `train`, `stop_training` (Windows only), `watch_progress` |
 | Scoring and result tables | `export_predictions`, `reproduce_inference`, `evaluate`, `analyze_training`, `compare_runs`, `calibration`, `prediction_curves`, `rerun_inference`, `run_remaining_checks`, `verify_paper_tables`, `find_values_in_paper` |
-| Model analysis | `analyze_gate_branches`, `analyze_gate_vs_static`, `analyze_embeddings`, `expert_tests`, `audit_shortcuts`, `complexity_table`, `benchmark_inference`, `benchmark_faces`, `compression_sweep` |
-| Data audits | `audit_duplicate_videos`, `audit_split_leakage`, `check_polyglot_split`, `plan_b_filtered_metrics`, `rescore_leave_one_out_dedup`, `count_partitions`, `check_dataset_releases` |
+| Model analysis | `analyze_gate_branches`, `analyze_gate_vs_static`, `mcnemar_per_split`, `analyze_embeddings`, `expert_tests`, `audit_shortcuts`, `complexity_table`, `branch_complexity`, `face_model_complexity` (needs `uv sync --extra complexity`), `benchmark_inference`, `benchmark_faces`, `compression_sweep` |
+| Data audits | `audit_duplicate_videos`, `audit_split_leakage`, `check_polyglot_split`, `plan_b_filtered_metrics`, `rescore_leave_one_out_dedup`, `count_partitions`, `check_dataset_releases`, `list_test_videos`, `check_test_videos`, `verify_test_video_sets` |
 | Several people | `infer_multi_subject`, `build_tiled_set`, `build_conversation_set`, `build_reencoded_control`, `score_tiled_set`, `check_face_tracks`, `check_diarization`, `count_faces`, `count_speaker_splits`, `render_multi_subject`, `summarize_multi_subject`, `export_diarization_details` |
 | Explanations | `explain_clip`, `explain_video`, `export_cam_coverage`, `export_audio_conditions` |
 | Other test sets | `score_images`, `score_still_frames`, `score_categories`, `find_viral_videos`, `download_viral_cases`, `trim_viral_clips`, `make_contact_sheets`, `score_viral_cases` |
 | Examples and figures data | `export_example_pairs`, `export_pair_frames`, `export_remote_example_pairs`, `export_face_detection`, `export_cross_language_transcripts` |
-| Archive helpers | `download_drive_archives`, `fetch_test_videos`, `remote_zip`, `remote_rar`, `extract_partial_zip` |
+| Archive helpers | `download_drive_archives`, `fetch_test_videos`, `extract_test_video_zip`, `remote_zip`, `remote_rar`, `extract_partial_zip` |
 | Demo | `demo` |
 
 ## Tests

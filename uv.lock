@@ -811,6 +811,9 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+complexity = [
+    { name = "tflite" },
+]
 download = [
     { name = "gdown" },
     { name = "requests" },
@@ -836,6 +839,7 @@ requires-dist = [
     { name = "requests", marker = "extra == 'download'" },
     { name = "scikit-learn" },
     { name = "speechbrain", specifier = ">=1.1.1" },
+    { name = "tflite", marker = "extra == 'complexity'", specifier = ">=2.18.0" },
     { name = "torch", specifier = ">=2.2", index = "https://download.pytorch.org/whl/cu128" },
     { name = "torchaudio", specifier = ">=2.2", index = "https://download.pytorch.org/whl/cu128" },
     { name = "torchvision", specifier = ">=0.17", index = "https://download.pytorch.org/whl/cu128" },
@@ -843,7 +847,7 @@ requires-dist = [
     { name = "transformers", specifier = ">=4.40" },
     { name = "yt-dlp", marker = "extra == 'download'" },
 ]
-provides-extras = ["download"]
+provides-extras = ["download", "complexity"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]
@@ -3308,6 +3312,21 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/83/d3/803453b36afefb7c2bb238361cd4ae6125a569b4db67cd9e79846ba2d68c/sympy-1.14.0.tar.gz", hash = "sha256:d3d3fe8df1e5a0b42f0e7bdf50541697dbe7d23746e894990c030e2b05e72517", size = 7793921, upload-time = "2025-04-27T18:05:01.611Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a2/09/77d55d46fd61b4a135c444fc97158ef34a095e5681d0a6c10b75bf356191/sympy-1.14.0-py3-none-any.whl", hash = "sha256:e091cc3e99d2141a0ba2847328f5479b05d94a6635cb96148ccb3f34671bd8f5", size = 6299353, upload-time = "2025-04-27T18:04:59.103Z" },
+]
+
+[[package]]
+name = "tflite"
+version = "2.18.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "flatbuffers" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
+    { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/93/0e/186beaed34ce9a740d7add374118b206fac75631c94bb4fa72d63ec32f7f/tflite-2.18.0.tar.gz", hash = "sha256:07e9478e0d0fb4d3082d0ce8e7e6eab4a90a7174412faec7702e24bfcbf4190d", size = 49232, upload-time = "2025-01-28T11:32:59.034Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/db/9b/f35d52989cb458a911f1ed4164b37dcf6559237b73c962c09ed0b6cecd4f/tflite-2.18.0-py2.py3-none-any.whl", hash = "sha256:a49a4316530377c597bb272176c12d5d3c4453640118b068c93a8c3cc6c5c2c1", size = 153155, upload-time = "2025-01-28T11:32:57.201Z" },
 ]
 
 [[package]]

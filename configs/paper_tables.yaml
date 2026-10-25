@@ -87,6 +87,11 @@ gate_vs_static:
     ffpp:         {auc diff: 0.0007, auc low: -0.0075, auc high: 0.0085, f1 diff: -0.0081, only: [101, 126], p: 0.111}
     all:          {auc diff: -0.0014, auc low: -0.0035, auc high: 0.0007, f1 diff: 0.0017, only: [636, 597], p: 0.279}
   pairs: {auc_higher: 9, f1_higher: 8, f1_equal: 1}
+  # McNemar on the decisions at 0.5, all test videos of each seed (gate right only, static right only)
+  mcnemar_per_seed:
+    42: {only: [190, 149], p: 0.030}
+    43: {only: [92, 115], p: 0.126}
+    44: {only: [176, 102], p: below 0.0001}
   # AUC and F1 at 0.5 on the seed-42 test split
   branches:
     hidf:        {gate: [0.9717, 0.9139], visual: [0.9698, 0.8924], audio_visual: [0.9677, 0.9064]}
@@ -94,3 +99,56 @@ gate_vs_static:
   muted: {gate_after: 0.9274, gate_drop: 0.027, static_after: 0.8930, static_drop: 0.038}
   # lowest and highest over the three seeds, percent
   triage: {review_share: [33, 38], share_of_gate_errors_in_alpha_set: [85, 88], share_of_static_errors_in_least_confident_static: [89, 97]}
+
+# Tabel V (AUC columns), Tabel VI and VII, and the audio-use table of Lampiran E (added 2026-10-20 with F6q)
+new_tables:
+  # AUC gate, AUC static on the pooled five-fold predictions
+  pooled_auc:
+    hidf: [0.9717, 0.9673]
+    fakeavceleb: [0.9969, 0.9903]
+    polyglotfake: [0.9995, 0.9979]
+    celebdfv2: [0.8965, 0.9020]
+    ffpp: [0.9433, 0.9426]
+    all: [0.9736, 0.9750]
+  # f1, ap, auc on the seed-42 test split
+  ablation:
+    gate:         [0.9162, 0.9940, 0.9747]
+    static:       [0.9038, 0.9962, 0.9809]
+    audio_visual: [0.9106, 0.9957, 0.9795]
+    visual:       [0.8780, 0.9913, 0.9608]
+    video_only:   [0.8889, 0.9959, 0.9761]
+    audio_only:   [0.6835, 0.9813, 0.8946]
+  # f1, auc on the seed-42 test split
+  per_dataset:
+    polyglotfake: {gate: [0.9892, 0.9994], visual: [0.8873, 0.9757], audio_visual: [0.9860, 0.9948], video_only: [0.8861, 0.9819]}
+    hidf:         {gate: [0.9139, 0.9717], visual: [0.8924, 0.9698], audio_visual: [0.9064, 0.9677], video_only: [0.8876, 0.9690]}
+    fakeavceleb:  {gate: [0.9335, 0.9880], visual: [0.6849, 0.9414], audio_visual: [0.8235, 0.9783], video_only: [0.7705, 0.9842]}
+  # macro-F1 change of the gated model over the three seeds, all test videos
+  audio_use: {other_audio_max: 0.0054, audio_zeroed: [0.020, 0.024], video_zeroed: [0.239, 0.259]}
+
+# Tabel XIV of Lampiran E (added 2026-10-22): AUC gate and static, videos only one model gets right (gate, static), McNemar p, per test split
+eight_splits:
+  gate_more: 5
+  static_more: 3
+  splits:
+    Seed 42: {auc: [0.9747, 0.9809], only: [190, 149], p: 0.030}
+    Seed 43: {auc: [0.9743, 0.9787], only: [92, 115], p: 0.126}
+    Seed 44: {auc: [0.9765, 0.9713], only: [176, 102], p: below 0.0001}
+    Fold 0: {auc: [0.9786, 0.9753], only: [120, 118], p: 0.948}
+    Fold 1: {auc: [0.9726, 0.9796], only: [124, 101], p: 0.142}
+    Fold 2: {auc: [0.9699, 0.9756], only: [144, 110], p: 0.038}
+    Fold 3: {auc: [0.9764, 0.9764], only: [133, 145], p: 0.509}
+    Fold 4: {auc: [0.9706, 0.9729], only: [115, 123], p: 0.650}
+
+# Tabel IX (added 2026-10-22): per 2-second segment on the RTX 4050 laptop with fp16 encoders; parameters in million, GFLOP, ms, real-time factor
+efficiency:
+  face_detection: {parameters_m: 1.30, gflop: 4.6, ms: 112.8, rtf: 0.056}
+  videomae: {parameters_m: 86.2, gflop: 270, ms: 40.4, rtf: 0.020}
+  whisper: {parameters_m: 305.7, gflop: 917, ms: 111.7, rtf: 0.056}
+  audio_visual_branch: {parameters_m: 5.85, gflop: 0.0073}
+  visual_branch: {parameters_m: 0.95}
+  gate: {parameters: 4417}
+  total: {parameters_m: 400, gflop: 1192, ms: 265, rtf: 0.132}
+  encoder_gflop_share: 99.6
+  trained_parameters_m: 7.08
+  training_only_parameters_m: 0.26

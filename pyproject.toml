@@ -26,6 +26,9 @@ dependencies = [
 
 [project.optional-dependencies]
 download = ["gdown", "yt-dlp", "requests"]
+complexity = [
+    "tflite>=2.18.0",
+]
 
 [dependency-groups]
 dev = ["pytest"]

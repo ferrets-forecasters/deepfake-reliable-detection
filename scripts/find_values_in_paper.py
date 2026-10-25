@@ -10,6 +10,8 @@ import yaml
 
 CONFIG = Path(__file__).resolve().parents[1] / "configs" / "paper_tables.yaml"
 SKIP = {"seeds", "folds"}
+# Checked against the results by verify_paper_tables.py but not printed in the paper yet: remove a key when the paper prints it.
+PENDING: set[str] = {"sides", "clips", "partner_elsewhere_share", "openforensics", "still_frame"}  # no longer printed after the Keterbatasan cuts of 2026-10-24
 
 
 def paper_text(docx: Path) -> str:
@@ -22,6 +24,8 @@ def paper_text(docx: Path) -> str:
 def leaves(node, path=()):
     if isinstance(node, dict):
         for key, value in node.items():
+            if key in PENDING:
+                continue
             yield from leaves(value, path + (str(key),))
     elif isinstance(node, list):
         for index, value in enumerate(node):
